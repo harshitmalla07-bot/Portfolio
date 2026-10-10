@@ -1,15 +1,15 @@
 ## Project
 
-Personal portfolio of Harshit Malla (computer engineering student, McMaster; hardware focus: RTL, FPGA, embedded). Projects are presented as a record label's discography, plus a resume page. Astro 7 (static, with one on-demand API route), deployed on Vercel.
+Personal portfolio of Harshit Malla (computer engineering student, McMaster; hardware focus: RTL, FPGA, embedded). Projects are laid out as spinning vinyl-style discs (visual only: all wording is plain engineering language, never music terms), plus a resume page. Astro 7 (static, with one on-demand API route), deployed on Vercel.
 
 - The approved design is `docs/prototype.html`. Match it. The rules behind it are in `docs/DESIGN.md`, so read that before any UI work.
 - The build plan and current phase are in `README.md` → Build plan. Tick items off as they're finished.
 
 ## Conventions
 
-- **Styling:** plain CSS. Design tokens live in `src/styles/tokens.css`; shared utilities (`.wrap`, `.lab`, `.display`, `.btn`, `.lnk`, `.mono`) live in `src/styles/global.css`. Component styles go in scoped `<style>` blocks. No Tailwind, no CSS-in-JS. Don't hardcode colors in components; use tokens. The exception is per-release `color`/`ink` from content.
+- **Styling:** plain CSS. Design tokens live in `src/styles/tokens.css`; shared utilities (`.wrap`, `.lab`, `.display`, `.btn`, `.lnk`, `.mono`) live in `src/styles/global.css`. Component styles go in scoped `<style>` blocks. No Tailwind, no CSS-in-JS. Don't hardcode colors in components; use tokens. The exception is per-project `color`/`ink` from content.
 - **Fonts:** come from Astro's fonts API (`astro.config.mjs`) as `--font-display`, `--font-sans`, `--font-mono`. Don't add `<link>`s to Google Fonts.
-- **Content:** projects are Markdown in `src/content/releases/`, validated by `src/content.config.ts`. Zod comes from `astro/zod` (Zod 4: use `z.url()`, `z.email()`). Get releases through `getReleases()` in `src/lib/releases.ts` so sorting and draft filtering stay consistent.
+- **Content:** projects are Markdown in `src/content/projects/`, validated by `src/content.config.ts`. Zod comes from `astro/zod` (Zod 4: use `z.url()`, `z.email()`). Get projects through `getProjects()` in `src/lib/projects.ts` so ordering, numbering and draft filtering stay consistent. Categories live in `src/data/categories.ts`.
 - **Resume and identity:** `src/data/resume.ts` and `src/data/site.ts`. Never hardcode the name, email or links in components.
 - **JavaScript:** no UI framework. Use small `<script>` blocks in components (bundled by Astro). Interactions must work with tap, mouse and keyboard, and must respect `prefers-reduced-motion`.
 - **Env vars:** declared in `astro.config.mjs` → `env.schema`, read with `import { RESEND_API_KEY } from 'astro:env/server'`. Never read `process.env` directly. Never commit `.env`.

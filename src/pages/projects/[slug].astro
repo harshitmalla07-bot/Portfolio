@@ -1,39 +1,40 @@
 ---
-// Release page. Design: docs/prototype.html → any release view; rules: docs/DESIGN.md.
+// Project page. Layout: docs/prototype.html; rules: docs/DESIGN.md.
 import type { GetStaticPaths } from 'astro';
 import { render } from 'astro:content';
 import { Image } from 'astro:assets';
 import Base from '../../layouts/Base.astro';
 import Record from '../../components/Record.astro';
 import CoverArt from '../../components/CoverArt.astro';
-import { getReleases, catalogLabel, pad2, releaseLine, timeline, type Release } from '../../lib/releases';
+import { getProjects, coverTransition, projectNo, statusLine, timeline, type Project } from '../../lib/projects';
 
 export const getStaticPaths = (async () => {
-	const releases = await getReleases();
-	return releases.map((release, i) => ({
-		params: { slug: release.id },
+	const projects = await getProjects();
+	return projects.map((project, i) => ({
+		params: { slug: project.id },
 		props: {
-			release,
-			index: i,
-			total: releases.length,
-			prev: releases[(i - 1 + releases.length) % releases.length],
-			next: releases[(i + 1) % releases.length],
+			project,
+			no: projectNo(i, projects.length),
+			position: i + 1,
+			total: projects.length,
+			prev: projects[(i - 1 + projects.length) % projects.length],
+			next: projects[(i + 1) % projects.length],
 		},
 	}));
 }) satisfies GetStaticPaths;
 
 interface Props {
-	release: Release;
-	index: number;
+	project: Project;
+	no: string;
+	position: number;
 	total: number;
-	prev: Release;
-	next: Release;
+	prev: Project;
+	next: Project;
 }
 
-const { release, index, total, prev, next } = Astro.props;
-const { data } = release;
-const { Content } = await render(release);
-const cat = catalogLabel(data.catalog);
+const { project, no, position, total, prev, next } = Astro.props;
+const { data } = project;
+const { Content } = await render(project);
 
 // Photos render at a fixed height (max 440px) and keep their aspect ratio, so the
 // displayed width is known per photo: request 1x and 2x of that, not a full-width image.
@@ -46,7 +47,7 @@ const meta = [
 	['Role', data.role],
 	['Stack', data.stack.join(', ')],
 	['Status', data.status],
-	['Timeline', timeline(release)],
+	['Timeline', timeline(project)],
 ];
 ---
 
@@ -54,26 +55,26 @@ const meta = [
 	<article class="wrap rel">
 		<div class="rel-top">
 			<a class="lnk" href="/">
-				← Discography
+				← All projects
 			</a>
 			<span class="mono pos">
-				{cat} · {pad2(index + 1)} of {pad2(total)}
+				No. {no} · {position} of {total}
 			</span>
 		</div>
 
 		<div class="rel-grid">
 			<div class="sleeve">
 				<div class="out">
-					<Record color={data.color} ink={data.ink} top={cat.toUpperCase()} bottom={`${data.rpm} RPM`} spin={7} />
+					<Record color={data.color} ink={data.ink} top={`NO. ${no}`} bottom={data.category.toUpperCase()} spin={7} />
 				</div>
-				<div class="jacket">
-					<CoverArt release={release} />
+				<div class="jacket" style={`view-transition-name: ${coverTransition(project)}`}>
+					<CoverArt project={project} no={no} />
 				</div>
 			</div>
 
 			<div class="info">
 				<p class="lab">
-					{data.type} · {releaseLine(release)}
+					{data.category} · {statusLine(project)}
 				</p>
 				<h1>{data.title}</h1>
 				<p class="tag">{data.tagline}</p>
@@ -107,28 +108,28 @@ const meta = [
 					))}
 				</dl>
 
-				<h2 class="lab">Tracklist</h2>
-				<ol class="tracks">
-					{data.tracks.map((t, i) => (
+				<h2 class="lab">Highlights</h2>
+				<ol class="highlights">
+					{data.highlights.map((t, i) => (
 						<li>
-							<span class="n">{pad2(i + 1)}</span>
+							<span class="n">{String(i + 1).padStart(2, '0')}</span>
 							<span>{t.title}</span>
 							<span class="k">{t.kind}</span>
 						</li>
 					))}
 				</ol>
 
-				<h2 class="lab">Liner notes</h2>
-				<div class="notes">
+				<h2 class="lab">Write-up</h2>
+				<div class="writeup">
 					<Content />
 				</div>
 			</div>
 		</div>
 
 		{data.photos.length > 0 && (
-			<section class="inside" aria-labelledby="inside-title">
-				<h2 class="lab" id="inside-title">
-					Inside the sleeve
+			<section class="gallery" aria-labelledby="photos-title">
+				<h2 class="lab" id="photos-title">
+					Photos
 				</h2>
 				<div class="photos">
 					{data.photos.map((p) => (
@@ -141,12 +142,12 @@ const meta = [
 			</section>
 		)}
 
-		<nav class="pn" aria-label="More releases">
-			<a href={`/discography/${prev.id}`}>
+		<nav class="pn" aria-label="More projects">
+			<a href={`/projects/${prev.id}`}>
 				<span class="lab">← Previous</span>
 				<span class="pt">{prev.data.title}</span>
 			</a>
-			<a class="nx" href={`/discography/${next.id}`}>
+			<a class="nx" href={`/projects/${next.id}`}>
 				<span class="lab">Next →</span>
 				<span class="pt">{next.data.title}</span>
 			</a>
@@ -269,13 +270,13 @@ const meta = [
 		font-size: 14px;
 	}
 
-	.tracks {
+	.highlights {
 		list-style: none;
 		margin: 0 0 30px;
 		padding: 0;
 	}
 
-	.tracks li {
+	.highlights li {
 		display: grid;
 		grid-template-columns: 34px minmax(0, 1fr) auto;
 		gap: 8px;
@@ -286,11 +287,11 @@ const meta = [
 		transition: color var(--t-fast);
 	}
 
-	.tracks li:last-child {
+	.highlights li:last-child {
 		border-bottom: 1px solid var(--ln);
 	}
 
-	.tracks li:hover {
+	.highlights li:hover {
 		color: var(--ac);
 	}
 
@@ -305,14 +306,14 @@ const meta = [
 		text-align: right;
 	}
 
-	.notes :global(p) {
+	.writeup :global(p) {
 		max-width: 62ch;
 		margin: 0 0 14px;
 		color: var(--body-2);
 		line-height: 1.7;
 	}
 
-	.notes :global(code) {
+	.writeup :global(code) {
 		font: 0.9em var(--font-mono);
 		color: var(--tx);
 		background: var(--raise);
@@ -321,7 +322,7 @@ const meta = [
 		padding: 1px 5px;
 	}
 
-	.inside {
+	.gallery {
 		margin-top: 56px;
 	}
 

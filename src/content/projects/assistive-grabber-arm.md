@@ -1,10 +1,8 @@
 ---
 title: Assistive Grabber Arm
-type: EP
+category: Mechanical
 started: 2026-01-05
 finished: 2026-04-30
-catalog: 1
-rpm: '45'
 tagline: A 3D-printed reach-and-grab tool designed for a real client who uses a wheelchair, taken from three concepts to a working prototype in 13 weeks.
 role: Design, CAD and testing, in a course team
 stack: [Autodesk Inventor, 3D printing (PLA), Load testing]
@@ -14,10 +12,10 @@ ink: '#04342C'
 spin: 6
 motif: arcs
 photos:
-  - src: ../../assets/releases/assistive-grabber-arm/prototype-bench.jpg
+  - src: ../../assets/projects/assistive-grabber-arm/prototype-bench.jpg
     alt: Top-down view of the 3D-printed grabber arm holding a roll of tape in its claw, with the handle and a printed electronics enclosure at the other end.
     caption: The working prototype gripping a roll of tape, with its control electronics in a 3D-printed enclosure.
-tracks:
+highlights:
   - { title: Three concepts scored with a weighted decision matrix, kind: Design }
   - { title: Every component modeled in Autodesk Inventor, kind: CAD }
   - { title: Multiple PLA print revisions, kind: Prototype }

@@ -1,17 +1,18 @@
 ---
-// Album cover for a release. Uses the release's `cover` image when it has one;
+// Cover for a project. Uses the project's `cover` image when it has one;
 // otherwise draws simple generated art: flat color, one line motif, title.
 import { Image } from 'astro:assets';
-import type { Release } from '../lib/releases';
-import { catalogLabel } from '../lib/releases';
+import type { Project } from '../lib/projects';
 
 interface Props {
-	release: Release;
+	project: Project;
+	/** Project number, e.g. "04" */
+	no: string;
 	class?: string;
 }
 
-const { release, class: className } = Astro.props;
-const { title, color, ink, catalog, motif, cover } = release.data;
+const { project, no, class: className } = Astro.props;
+const { title, color, ink, motif, cover } = project.data;
 
 // Long titles wrap onto two lines at the space nearest the middle.
 const lines = (() => {
@@ -75,7 +76,7 @@ for (let row = 0; row < 4; row++)
 			)}
 		</g>
 		<text x="9" y="12" font-size="4.5" letter-spacing="0.6" fill={ink} style="font-family: var(--font-mono)">
-			{catalogLabel(catalog).toUpperCase()}
+			NO. {no}
 		</text>
 		{lines.map((line, i) => (
 			<text x="9" y={91 - (lines.length - 1 - i) * 11} font-size={titleSize} font-style="italic" fill={ink}>

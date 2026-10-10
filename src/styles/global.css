@@ -60,7 +60,7 @@ h3 {
 	font-family: var(--font-mono);
 }
 
-/* Small uppercase label: "Discography · 04 releases", "Tracklist", "Side A · Experience" */
+/* Small uppercase label: "Projects · 04", "Highlights", "Experience" */
 .lab {
 	font: 500 11px/1.4 var(--font-mono);
 	color: var(--dim);
@@ -136,14 +136,45 @@ h3 {
 	white-space: nowrap;
 }
 
-/* Native cross-page transitions (Chrome, Edge, Safari 18.2+). Others just navigate. */
+/*
+  Native cross-page transitions (Chrome, Edge, Safari 18.2+; other browsers just navigate).
+  The nav holds still, the old page fades out quickly, the new one rises in, and a project's
+  cover (view-transition-name: cover-<id>) glides between the grid and its project page.
+*/
 @view-transition {
 	navigation: auto;
 }
 
-::view-transition-old(root),
+::view-transition-group(*) {
+	animation-duration: 0.45s;
+	animation-timing-function: var(--ease);
+}
+
+::view-transition-old(root) {
+	animation: vt-out 0.18s ease both;
+}
+
 ::view-transition-new(root) {
-	animation-duration: 0.22s;
+	animation: vt-in 0.42s var(--ease) both;
+}
+
+@keyframes vt-out {
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes vt-in {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 10px, 0);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	@view-transition {
+		navigation: none;
+	}
 }
 
 @keyframes spin {

@@ -1,10 +1,8 @@
 ---
 title: MACRO-TICK
-type: LP
+category: Embedded
 started: 2026-02-01
 finished: 2026-04-30
-catalog: 2
-rpm: '33⅓'
 tagline: A real-time embedded trading terminal. An ESP32-S3 streams live equity prices to a 16×2 character LCD, and a hold-to-arm button makes accidental trades physically impossible.
 role: Firmware and hardware bring-up
 stack: [ESP32-S3, C++ (PlatformIO), I2C, UART, Python]
@@ -14,10 +12,10 @@ ink: '#412402'
 spin: 5.2
 motif: waveform
 photos:
-  - src: ../../assets/releases/macro-tick/breadboard-bringup.jpg
+  - src: ../../assets/projects/macro-tick/breadboard-bringup.jpg
     alt: An ESP32-S3 on a breadboard, wired to a backlit 16×2 character LCD, with a mechanical key switch on a lead and a decoupling capacitor on the rail.
     caption: Breadboard bring-up with the ESP32-S3, a 16×2 I2C LCD and a mechanical key switch.
-tracks:
+highlights:
   - { title: Live prices on a 16×2 LCD over I2C, kind: Display }
   - { title: Custom 115200-baud UART protocol from a Python host, kind: Protocol }
   - { title: 4-state hold-to-arm execution FSM, kind: Safety }

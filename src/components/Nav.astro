@@ -3,7 +3,7 @@ import { site } from '../data/site';
 
 const path = Astro.url.pathname;
 const items = [
-	{ href: '/', label: 'Discography', active: path === '/' || path.startsWith('/discography') },
+	{ href: '/', label: 'Projects', active: path === '/' || path.startsWith('/projects') },
 	{ href: '/resume', label: 'Resume', active: path.startsWith('/resume') },
 ];
 ---
@@ -33,9 +33,11 @@ const items = [
 		/* Line up with .wrap content on wide screens */
 		padding-inline: max(var(--gut), calc((100% - var(--max)) / 2 + var(--gut)));
 		border-bottom: 1px solid var(--ln);
-		background: color-mix(in srgb, var(--bg) 86%, transparent);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
+		/* Near-opaque instead of a backdrop blur: re-blurring the spinning discs on every scroll
+		   frame was the most expensive thing on the page. */
+		background: color-mix(in srgb, var(--bg) 94%, transparent);
+		/* Stays put while the page underneath transitions. */
+		view-transition-name: site-nav;
 	}
 
 	.brand {

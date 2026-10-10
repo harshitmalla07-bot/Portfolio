@@ -5,12 +5,10 @@ import Record from '../components/Record.astro';
 import CopyEmail from '../components/CopyEmail.astro';
 import { resume } from '../data/resume';
 import { site } from '../data/site';
-import { pad2 } from '../lib/releases';
+import { pad2 } from '../lib/projects';
 
-// Track numbers run straight through Side A (experience) into Side B (education).
-const eduStart = resume.experience.length;
-// "October 2026" → "2026" for the record label
-const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
+// "October 2026" → "REV OCT 2026" for the disc label
+const revision = `REV ${resume.updated.slice(0, 3)} ${resume.updated.match(/\d{4}/)?.[0] ?? ''}`.toUpperCase();
 ---
 
 <Base title="Resume" description={resume.summary}>
@@ -18,7 +16,7 @@ const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
 		<div class="wrap hero-in">
 			<p class="lab">Resume · updated {resume.updated}</p>
 			<h1 class="display">
-				The full <em>credits.</em>
+				The full <em>datasheet.</em>
 			</h1>
 			<p class="intro">{resume.summary}</p>
 			<p class="avail">
@@ -30,9 +28,9 @@ const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
 
 	<div class="wrap res">
 		<div class="main">
-			<section class="block" aria-labelledby="side-a">
-				<h2 class="lab" id="side-a">
-					Side A · Experience
+			<section class="block" aria-labelledby="experience">
+				<h2 class="lab" id="experience">
+					Experience
 				</h2>
 				{resume.experience.map((job, i) => (
 					<div class="job open" data-job>
@@ -59,13 +57,13 @@ const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
 				))}
 			</section>
 
-			<section class="block" aria-labelledby="side-b">
-				<h2 class="lab" id="side-b">
-					Side B · Education
+			<section class="block" aria-labelledby="education">
+				<h2 class="lab" id="education">
+					Education
 				</h2>
 				{resume.education.map((s, i) => (
 					<div class="edu">
-						<span class="n">{pad2(eduStart + i + 1)}</span>
+						<span class="n">{pad2(i + 1)}</span>
 						<span>
 							{s.degree} <span class="org">· {s.school}</span>
 							<span class="sub">{s.details.join(' · ')}</span>
@@ -86,9 +84,9 @@ const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
 				</ul>
 			</section>
 
-			<section class="block last" aria-labelledby="instruments">
-				<h2 class="lab" id="instruments">
-					Instruments
+			<section class="block last" aria-labelledby="skills">
+				<h2 class="lab" id="skills">
+					Skills
 				</h2>
 				<dl class="inst">
 					{Object.entries(resume.skills).map(([group, items]) => (
@@ -109,12 +107,12 @@ const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
 			<div class="card">
 				<div class="stop" aria-hidden="true">
 					<div class="rw">
-						<Record color="var(--ac)" ink="var(--bg)" top="RESUME" bottom={`${pressingYear} PRESSING`} spin={6} />
+						<Record color="var(--ac)" ink="var(--bg)" top="RESUME" bottom={revision} spin={6} />
 					</div>
 				</div>
 				<div class="cb">
-					<h2 id="take-title">Take a copy home</h2>
-					<p class="sub">One page, always the latest version.</p>
+					<h2 id="take-title">Resume PDF</h2>
+					<p class="sub">One page, always the current revision.</p>
 					<a class="btn pri" href={site.resumePdf} download>
 						Download PDF ↓
 					</a>
@@ -123,9 +121,9 @@ const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
 			</div>
 		</aside>
 
-		<section class="credits" aria-labelledby="credits-title">
-			<h2 class="lab" id="credits-title">
-				Credits
+		<section class="contact" aria-labelledby="contact-title">
+			<h2 class="lab" id="contact-title">
+				Contact
 			</h2>
 			{site.links.github && (
 				<a class="row" href={site.links.github} target="_blank" rel="noopener">
@@ -210,7 +208,7 @@ const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
 		grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
 		grid-template-areas:
 			'main take'
-			'main credits';
+			'main contact';
 		grid-template-rows: auto 1fr;
 		gap: 28px 64px;
 		padding-block: 40px 64px;
@@ -226,8 +224,8 @@ const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
 		grid-area: take;
 	}
 
-	.credits {
-		grid-area: credits;
+	.contact {
+		grid-area: contact;
 	}
 
 	.block {
@@ -353,7 +351,7 @@ const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
 		border-bottom: 1px solid var(--ln);
 	}
 
-	/* Instruments */
+	/* Skills */
 	.inst {
 		display: grid;
 		gap: 10px;
@@ -388,7 +386,7 @@ const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
 		color: var(--body-2);
 	}
 
-	/* Take a copy home */
+	/* Resume PDF card */
 	.card {
 		border: 1px solid var(--ln);
 		border-radius: var(--radius-card);
@@ -432,8 +430,8 @@ const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
 		color: var(--dim);
 	}
 
-	/* Credits */
-	.credits .lab {
+	/* Contact */
+	.contact .lab {
 		margin-bottom: 12px;
 	}
 
@@ -469,7 +467,7 @@ const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
 	@media (max-width: 760px) {
 		.res {
 			grid-template-columns: minmax(0, 1fr);
-			grid-template-areas: 'take' 'main' 'credits';
+			grid-template-areas: 'take' 'main' 'contact';
 			grid-template-rows: none;
 			gap: 44px;
 		}

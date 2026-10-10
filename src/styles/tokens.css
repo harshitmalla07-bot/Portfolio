@@ -8,7 +8,7 @@
 
 	/* Surfaces */
 	--bg: #0a0a0b; /* page */
-	--raise: #0f0f11; /* cards, the resume sleeve */
+	--raise: #0f0f11; /* cards, the resume PDF card */
 	--shot: #111113; /* screenshot placeholders */
 	--ln: #1d1d21; /* hairlines, dividers */
 	--ln-2: #2c2c31; /* control borders, pills */
@@ -16,7 +16,7 @@
 
 	/* Text */
 	--tx: #ededea; /* primary */
-	--body-2: #c2c2bc; /* long-form copy: liner notes, bullets */
+	--body-2: #c2c2bc; /* long-form copy: write-ups, bullets */
 	--mu: #8d8d87; /* secondary */
 	--dim: #66665f; /* labels, metadata, numbers */
 
@@ -24,7 +24,7 @@
 	--ac: #e8ff59;
 	--err: #f09595;
 
-	/* Vinyl */
+	/* Discs (the vinyl-style visual) */
 	--vinyl: #0d0d0f;
 	--groove: #19191c;
 	--groove-gap: #2a2a2f;

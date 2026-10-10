@@ -1,44 +1,44 @@
 ---
-// One release on the discography grid: the record sits on top of its sleeve.
-// It's a plain link, so without JavaScript it opens the release directly.
-// With JS (see the script in pages/index.astro), the first tap lifts the record off
-// to reveal the cover, and the second tap opens the release.
+// One project on the grid: a spinning disc sits on top of its cover.
+// It's a plain link, so without JavaScript it opens the project directly.
+// With JS (see the script in pages/index.astro), the first tap lifts the disc off to
+// reveal the cover, and the second tap opens the project. The cover shares a
+// view-transition name with the project page, so it glides into place there.
 import CoverArt from './CoverArt.astro';
 import Record from './Record.astro';
-import { catalogLabel, releaseYear, type Release } from '../lib/releases';
+import { coverTransition, projectYear, type Project } from '../lib/projects';
 
 interface Props {
-	release: Release;
+	project: Project;
+	/** Project number, e.g. "04" */
+	no: string;
 }
 
-const { release } = Astro.props;
-const { title, type, catalog, color, ink, rpm, spin } = release.data;
-const cat = catalogLabel(catalog);
+const { project, no } = Astro.props;
+const { title, category, color, ink, spin } = project.data;
 ---
 
 <a
 	class="slot"
-	href={`/discography/${release.id}`}
-	data-slot={release.id}
+	href={`/projects/${project.id}`}
+	data-slot={project.id}
 	data-title={title}
-	data-cat={cat}
-	aria-label={`${title}, ${type} ${releaseYear(release)}`}
+	data-no={no}
+	aria-label={`${title}, ${category}, ${projectYear(project)}`}
 >
 	<div class="sq">
-		<div class="art">
-			<CoverArt release={release} />
+		<div class="art" style={`view-transition-name: ${coverTransition(project)}`}>
+			<CoverArt project={project} no={no} />
 		</div>
 		<div class="rec">
-			<Record color={color} ink={ink} top={cat.toUpperCase()} bottom={`${rpm} RPM`} spin={spin} />
+			<Record color={color} ink={ink} top={`NO. ${no}`} bottom={category.toUpperCase()} spin={spin} />
 		</div>
 	</div>
 	<div class="cap">
-		<span class="pre">{cat} · reveal</span>
+		<span class="pre">No. {no} · tap to reveal</span>
 		<span class="post">
 			<span class="t">{title}</span>
-			<span class="m">
-				{type} · {releaseYear(release)}
-			</span>
+			<span class="m">{category}</span>
 		</span>
 	</div>
 </a>
@@ -78,11 +78,11 @@ const cat = catalogLabel(catalog);
 		position: absolute;
 		inset: 0;
 		transition:
-			opacity 0.45s ease,
+			opacity 0.4s ease,
 			transform var(--t-reveal) var(--ease);
 	}
 
-	/* Without JS there's nothing to reveal: show the cover and keep the record off. */
+	/* Without JS there's nothing to reveal: show the cover and keep the disc off. */
 	:global(html:not(.js)) .slot .rec {
 		display: none;
 	}
@@ -92,20 +92,21 @@ const cat = catalogLabel(catalog);
 		transform: none;
 	}
 
+	/* The disc lifts up and away rather than just fading. */
 	.slot.open .rec {
 		opacity: 0;
-		transform: scale(1.12);
+		transform: translate3d(0, -6%, 0) scale(1.08);
 		pointer-events: none;
 	}
 
 	/* Never scale a spinning layer on hover; it blurs. Lift it instead. */
 	@media (hover: hover) {
 		.slot:not(.open):hover .rec {
-			transform: translateY(-4px);
+			transform: translate3d(0, -4px, 0);
 		}
 
 		.slot.open:hover .art {
-			transform: translateY(-5px);
+			transform: translate3d(0, -5px, 0);
 		}
 	}
 

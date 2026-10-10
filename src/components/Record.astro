@@ -1,11 +1,11 @@
 ---
-// A spinning vinyl record. The grooves rotate; the sheen stays still,
-// like light hitting a real record. Size it with its container.
+// The spinning disc. The grooves rotate; the sheen stays still, like light on a real
+// record. Size it with its container.
 interface Props {
 	color: string; // label color (hex or a CSS var like var(--ac))
 	ink: string; // text color on the label
-	top?: string; // label text above the spindle, e.g. "CAT. 004"
-	bottom?: string; // label text below the spindle, e.g. "33⅓ RPM"
+	top?: string; // label text above the spindle, e.g. "NO. 04"
+	bottom?: string; // label text below the spindle, e.g. "EMBEDDED"
 	spin?: number; // seconds per rotation
 	class?: string;
 }
@@ -41,7 +41,15 @@ const grooves = [95, 91, 87, 83, 77, 73, 69, 61, 57, 53, 49, 45];
 			<text x="100" y="84" text-anchor="middle" font-size="6" letter-spacing="1.2" style={`fill:${ink}`}>
 				{top}
 			</text>
-			<text x="100" y="121" text-anchor="middle" font-size="5" letter-spacing="0.6" style={`fill:${ink}`} opacity="0.7">
+			<text
+				x="100"
+				y="121"
+				text-anchor="middle"
+				font-size="4.6"
+				letter-spacing="0.4"
+				style={`fill:${ink}`}
+				opacity="0.7"
+			>
 				{bottom}
 			</text>
 			<circle class="hole" cx="100" cy="100" r="2.6"></circle>
@@ -55,10 +63,10 @@ const grooves = [95, 91, 87, 83, 77, 73, 69, 61, 57, 53, 49, 45];
 		position: relative;
 		width: 100%;
 		aspect-ratio: 1;
-		/* The disc's square box sticks out ~20% at its corners mid-rotation. Clipping to the
-		   circle keeps that out of page layout; without it, phones scroll sideways mid-spin. */
-		overflow: hidden;
-		border-radius: 50%;
+		/* The disc's square box sticks out ~20% at its corners mid-rotation; without a clip,
+		   phones scroll sideways mid-spin. A plain rectangular clip is enough (the corners are
+		   transparent) and, unlike a rounded one, needs no per-frame mask. */
+		overflow: clip;
 	}
 
 	.disc {

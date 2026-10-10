@@ -1,14 +1,15 @@
 // End-to-end test + benchmark for the built site.
 //
 //   npm run build
-//   npm test                  one run
+//   npm test                  one run against the local production build
 //   npm run test:100          100 runs, 4 at a time, then a failure/timing report
 //   node tests/site.test.mjs --runs 20 --workers 2
+//   node tests/site.test.mjs --url https://your-site.vercel.app     test the live site
 //
-// Serves the production output (.vercel/output/static, honoring the redirects in
+// Locally it serves the production output (.vercel/output/static, honoring the redirects in
 // .vercel/output/config.json) and drives the installed Microsoft Edge with playwright-core.
-// Expected values come from the real content (src/content/releases, src/data), so the
-// tests keep working as projects are added.
+// Expected values come from the real content (src/content/projects, src/data), so the tests
+// keep working as projects are added.
 
 import { createServer } from 'node:http';
 import { readFile, readdir, stat, mkdir, writeFile } from 'node:fs/promises';
@@ -23,42 +24,53 @@ const STATIC = join(OUT, 'static');
 
 const arg = (name, fallback) => {
 	const i = process.argv.indexOf(`--${name}`);
-	return i > -1 ? Number(process.argv[i + 1]) : fallback;
+	return i > -1 ? process.argv[i + 1] : fallback;
 };
-const RUNS = arg('runs', 1);
-const WORKERS = Math.min(arg('workers', 1), RUNS);
+const RUNS = Number(arg('runs', 1));
+const WORKERS = Math.min(Number(arg('workers', 1)), RUNS);
+const LIVE_URL = arg('url', null)?.replace(/\/$/, '');
 const DESKTOP = { width: 1280, height: 800 };
 const PHONE = { width: 375, height: 812 };
 
+// Music-catalog wording the site must not use any more (the vinyl is visual only).
+const MUSIC_WORDS =
+	/discograph|tracklist|liner notes|pressed on|\bwax\b|\bLP\b|\bEP\b|\bside [ab]\b|\bcredits\b|\bcatalog|\bRPM\b|\breleases?\b|now spinning|\bsleeve\b/i;
+
 // ---------- expected content, read from source ----------
 
-async function loadReleases() {
-	const dir = join(ROOT, 'src/content/releases');
+async function loadProjects() {
+	const dir = join(ROOT, 'src/content/projects');
 	const files = (await readdir(dir)).filter((f) => f.endsWith('.md'));
-	const releases = [];
+	const projects = [];
 	for (const file of files) {
 		const fm = (await readFile(join(dir, file), 'utf8')).split('---')[1];
 		const field = (k) => fm.match(new RegExp(`^${k}:\\s*['"]?(.+?)['"]?\\s*$`, 'm'))?.[1];
-		releases.push({
+		projects.push({
 			id: file.replace(/\.md$/, ''),
 			title: field('title'),
-			type: field('type'),
-			catalog: Number(field('catalog')),
-			finished: Boolean(field('finished')),
+			category: field('category'),
+			started: new Date(field('started')).getTime(),
+			finished: field('finished') ? new Date(field('finished')).getTime() : null,
 			draft: field('draft') === 'true',
-			tracks: (fm.match(/^\s+- \{ title:/gm) ?? []).length,
+			highlights: (fm.match(/^\s+- \{ title:/gm) ?? []).length,
 			photos: (fm.match(/^\s+- src:/gm) ?? []).length,
 			source: fm.match(/^\s+source:\s*(\S+)/m)?.[1],
 			journal: fm.match(/^\s+journal:\s*(\S+)/m)?.[1],
 		});
 	}
-	return releases.filter((r) => !r.draft).sort((a, b) => b.catalog - a.catalog);
+	// Same order as getProjects(): in progress first, then most recently finished.
+	return projects
+		.filter((p) => !p.draft)
+		.sort((a, b) => {
+			if (!a.finished !== !b.finished) return a.finished ? 1 : -1;
+			return (b.finished ?? b.started) - (a.finished ?? a.started) || b.started - a.started;
+		});
 }
 
 // Node 24 runs .ts files directly (type stripping), so the data modules load as-is.
 const { site } = await import('../src/data/site.ts');
 const { resume } = await import('../src/data/resume.ts');
-const RELEASES = await loadReleases();
+const PROJECTS = await loadProjects();
 
 // ---------- static server that behaves like Vercel ----------
 
@@ -91,10 +103,12 @@ async function startServer() {
 
 	const server = createServer(async (req, res) => {
 		const url = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-		const redirect = redirects.find((r) => r.re.test(url));
-		if (redirect) {
-			res.writeHead(redirect.status, { Location: redirect.to }).end();
-			return;
+		for (const r of redirects) {
+			const m = url.match(r.re);
+			if (m) {
+				res.writeHead(r.status, { Location: r.to.replace(/\$(\d+)/g, (_, n) => m[n] ?? '') }).end();
+				return;
+			}
 		}
 		const file = await fileFor(join(STATIC, url));
 		if (file) {
@@ -167,8 +181,8 @@ async function brokenImages(page) {
 	});
 }
 
-// Checks for sideways scroll with every spinning record frozen at 45°, the angle where a
-// rotating square box sticks out furthest. Measuring at whatever angle the record happens to
+// Checks for sideways scroll with every spinning disc frozen at 45°, the angle where a
+// rotating square box sticks out furthest. Measuring at whatever angle the disc happens to
 // be at made this check pass or fail by luck.
 const noOverflow = (page) =>
 	page.evaluate(() => {
@@ -191,12 +205,12 @@ async function suite(browser, base) {
 	await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: base });
 
 	const pages = [
-		{ path: '/', active: 'Discography' },
+		{ path: '/', active: 'Projects' },
 		{ path: '/resume', active: 'Resume' },
-		...RELEASES.map((r) => ({ path: `/discography/${r.id}`, active: 'Discography' })),
+		...PROJECTS.map((p) => ({ path: `/projects/${p.id}`, active: 'Projects' })),
 	];
 
-	// Every page: structure, metadata, assets, layout at desktop and phone.
+	// Every page: structure, metadata, wording, assets, layout at desktop and phone.
 	for (const { path, active } of pages) {
 		const t0 = performance.now();
 		const { page, response, problems } = await open(context, base, path);
@@ -217,6 +231,11 @@ async function suite(browser, base) {
 			expect(meta.desc?.length > 20, 'missing description');
 			expect(meta.canonical, 'missing canonical');
 			expect(meta.lang === 'en', `lang "${meta.lang}"`);
+		});
+		await check(`${path} · uses engineering wording, no music-catalog terms`, async () => {
+			const text = await page.evaluate(() => document.body.innerText + ' ' + document.title);
+			const hit = text.match(MUSIC_WORDS);
+			expect(!hit, `found "${hit?.[0]}"`);
 		});
 		await check(`${path} · nav marks "${active}" as current`, async () => {
 			const current = await page.locator('nav a[aria-current="page"]').allTextContents();
@@ -249,28 +268,58 @@ async function suite(browser, base) {
 		await page.close();
 	}
 
-	// Discography interactions.
+	// Smoothness: the nav is pinned through page transitions and doesn't blur what scrolls under it.
+	{
+		const { page } = await open(context, base, '/');
+		await check('smoothness · nav holds still during page transitions, no backdrop blur', async () => {
+			const nav = await page.$eval('header.nav', (e) => {
+				const s = getComputedStyle(e);
+				return { vt: s.viewTransitionName, blur: s.backdropFilter };
+			});
+			expect(nav.vt === 'site-nav', `view-transition-name ${nav.vt}`);
+			expect(nav.blur === 'none', `backdrop-filter ${nav.blur}`);
+		});
+		await check('smoothness · each grid cover shares a transition name with its project page', async () => {
+			const names = await page.$$eval('[data-slot] .art', (els) =>
+				els.map((e) => getComputedStyle(e).viewTransitionName),
+			);
+			expect(
+				names.every((n, i) => n === `cover-${PROJECTS[i].id}`),
+				`grid names ${names.join(',')}`,
+			);
+			const detail = await context.newPage();
+			await detail.goto(`${base}/projects/${PROJECTS[0].id}`);
+			const name = await detail.$eval('.jacket', (e) => getComputedStyle(e).viewTransitionName);
+			await detail.close();
+			expect(name === `cover-${PROJECTS[0].id}`, `project page name ${name}`);
+		});
+		await page.close();
+	}
+
+	// Project grid interactions.
 	{
 		const { page } = await open(context, base, '/');
 		const slots = page.locator('[data-slot]');
 
-		await check('home · releases in catalog order, newest first', async () => {
+		await check('home · projects in order: in progress first, then most recent', async () => {
 			const ids = await slots.evaluateAll((els) => els.map((e) => e.dataset.slot));
-			expect(JSON.stringify(ids) === JSON.stringify(RELEASES.map((r) => r.id)), `order ${ids.join(',')}`);
+			expect(JSON.stringify(ids) === JSON.stringify(PROJECTS.map((p) => p.id)), `order ${ids.join(',')}`);
 		});
-		await check('home · "Now spinning" links to the newest release', async () => {
-			const href = await page.locator('a.now').getAttribute('href');
-			expect(href === `/discography/${RELEASES[0].id}`, `href ${href}`);
+		await check('home · "Currently building" chip links to the newest project', async () => {
+			const chip = page.locator('a.now');
+			const [href, text] = [await chip.getAttribute('href'), await chip.textContent()];
+			expect(href === `/projects/${PROJECTS[0].id}`, `href ${href}`);
+			expect(text.includes(PROJECTS[0].finished ? 'Latest project' : 'Currently building'), `text "${text.trim()}"`);
 		});
-		await check('home · records are spinning', async () => {
+		await check('home · discs are spinning', async () => {
 			const spins = await page.$$eval('.disc', (els) =>
 				els.every(
 					(e) => getComputedStyle(e).animationName === 'spin' && getComputedStyle(e).animationPlayState === 'running',
 				),
 			);
-			expect(spins, 'a record is not spinning');
+			expect(spins, 'a disc is not spinning');
 		});
-		await check('home · record colors come from CSS classes and resolve', async () => {
+		await check('home · disc colors come from CSS classes and resolve', async () => {
 			const fills = await page.$eval('.record svg', (svg) => {
 				const s = (sel, p) => getComputedStyle(svg.querySelector(sel))[p];
 				return [s('.base', 'fill'), s('.grooves', 'stroke'), s('.gaps', 'stroke'), s('.hole', 'fill')];
@@ -287,34 +336,33 @@ async function suite(browser, base) {
 			await page.waitForFunction(() => document.querySelector('[data-slot]').classList.contains('open'));
 			expect(new URL(page.url()).pathname === '/', `navigated to ${page.url()}`);
 			const label = await first.getAttribute('aria-label');
-			expect(label === `Open ${RELEASES[0].title}`, `aria-label "${label}"`);
+			expect(label === `Open ${PROJECTS[0].title}`, `aria-label "${label}"`);
 		});
 		await check('home · reveal is remembered after reload', async () => {
 			await page.reload({ waitUntil: 'load' });
 			expect(await first.evaluate((e) => e.classList.contains('open')), 'not open after reload');
 		});
-		await check('home · "Re-sleeve all" puts every record back', async () => {
+		await check('home · "Reset" covers every project again', async () => {
 			await page.locator('[data-reset]').click();
 			const open = await page.locator('[data-slot].open').count();
 			expect(open === 0, `${open} still open`);
 		});
-		for (const type of ['LP', 'EP', 'Single']) {
-			const want = RELEASES.filter((r) => r.type === type).length;
-			if (!want) continue;
-			await check(`home · "${type}" filter shows exactly the ${type} releases`, async () => {
-				await page.locator(`[data-filter="${type}"]`).click();
-				const shown = await page.$$eval('li[data-type]', (lis) =>
-					lis.filter((l) => !l.hidden).map((l) => l.dataset.type),
+		for (const category of [...new Set(PROJECTS.map((p) => p.category))]) {
+			const want = PROJECTS.filter((p) => p.category === category).length;
+			await check(`home · "${category}" filter shows exactly its projects`, async () => {
+				await page.locator(`[data-filter="${category}"]`).click();
+				const shown = await page.$$eval('li[data-category]', (lis) =>
+					lis.filter((l) => !l.hidden).map((l) => l.dataset.category),
 				);
-				expect(shown.length === want && shown.every((t) => t === type), `shown ${shown.join(',')}`);
+				expect(shown.length === want && shown.every((c) => c === category), `shown ${shown.join(',')}`);
 			});
 		}
-		await check('home · "All" filter restores every release', async () => {
+		await check('home · "All" filter restores every project', async () => {
 			await page.locator('[data-filter="All"]').click();
-			const hidden = await page.locator('li[data-type][hidden]').count();
+			const hidden = await page.locator('li[data-category][hidden]').count();
 			expect(hidden === 0, `${hidden} hidden`);
 		});
-		await check('home · Enter key reveals a focused record', async () => {
+		await check('home · Enter key reveals a focused project', async () => {
 			await slots.nth(1).focus();
 			await page.keyboard.press('Enter');
 			await page.waitForFunction(() => document.querySelectorAll('[data-slot]')[1].classList.contains('open'));
@@ -324,31 +372,32 @@ async function suite(browser, base) {
 			const popup = context.waitForEvent('page', { timeout: 5000 });
 			await third.click({ modifiers: ['Control'] });
 			const tab = await popup;
-			expect(!(await third.evaluate((e) => e.classList.contains('open'))), 'record was revealed');
+			expect(!(await third.evaluate((e) => e.classList.contains('open'))), 'project was revealed');
 			await tab.close();
 		});
-		await check('home · second tap opens the release page', async () => {
-			await Promise.all([page.waitForURL(`**/discography/${RELEASES[1].id}`), slots.nth(1).click()]);
+		await check('home · second tap opens the project page', async () => {
+			await Promise.all([page.waitForURL(`**/projects/${PROJECTS[1].id}`), slots.nth(1).click()]);
 		});
 		await page.close();
 	}
 
-	// Release pages: content matches the source files.
-	for (const [i, r] of RELEASES.entries()) {
-		const { page } = await open(context, base, `/discography/${r.id}`);
-		const p = `/discography/${r.id}`;
-		await check(`${p} · title, ${r.tracks} tracks, 4 details`, async () => {
-			expect((await page.locator('h1').textContent()).trim() === r.title, 'wrong h1');
-			const tracks = await page.locator('.tracks li').count();
-			expect(tracks === r.tracks, `${tracks} tracks`);
+	// Project pages: content matches the source files.
+	for (const [i, p] of PROJECTS.entries()) {
+		const { page } = await open(context, base, `/projects/${p.id}`);
+		const path = `/projects/${p.id}`;
+		await check(`${path} · title, ${p.highlights} highlights, 4 details`, async () => {
+			expect((await page.locator('h1').textContent()).trim() === p.title, 'wrong h1');
+			const highlights = await page.locator('.highlights li').count();
+			expect(highlights === p.highlights, `${highlights} highlights`);
 			const meta = await page.locator('.meta dt').count();
 			expect(meta === 4, `${meta} details`);
 		});
-		await check(`${p} · release line matches status`, async () => {
+		await check(`${path} · category and status line`, async () => {
 			const line = await page.locator('.info .lab').first().textContent();
-			expect(line.includes(r.finished ? 'Released' : 'Recording since'), `"${line}"`);
+			expect(line.includes(p.category), `"${line}" lacks category`);
+			expect(line.includes(p.finished ? 'Completed' : 'In progress since'), `"${line}"`);
 		});
-		await check(`${p} · buttons match its links`, async () => {
+		await check(`${path} · buttons match its links`, async () => {
 			// count() first: getAttribute on a missing element would wait for the full timeout.
 			const href = async (text) => {
 				const link = page.locator(`.actions a:has-text("${text}")`);
@@ -356,29 +405,29 @@ async function suite(browser, base) {
 			};
 			const src = await href('Source on GitHub');
 			const journal = await href('Design journal');
-			expect(src === r.source, `source ${src} vs ${r.source}`);
-			expect(journal === r.journal, `journal ${journal} vs ${r.journal}`);
+			expect(src === p.source, `source ${src} vs ${p.source}`);
+			expect(journal === p.journal, `journal ${journal} vs ${p.journal}`);
 		});
-		await check(`${p} · cover art labelled for screen readers`, async () => {
+		await check(`${path} · cover art labelled for screen readers`, async () => {
 			const label = await page.locator('.jacket [aria-label]').getAttribute('aria-label');
-			expect(label === `Cover art for ${r.title}`, `"${label}"`);
+			expect(label === `Cover art for ${p.title}`, `"${label}"`);
 		});
-		await check(`${p} · ${r.photos} photo(s), sized to their display width`, async () => {
+		await check(`${path} · ${p.photos} photo(s), sized to their display width`, async () => {
 			const imgs = await page.$$eval('.photos img', (els) =>
 				els.map((e) => ({ shown: e.getBoundingClientRect().width, sizes: parseInt(e.sizes) })),
 			);
-			expect(imgs.length === r.photos, `${imgs.length} photos`);
+			expect(imgs.length === p.photos, `${imgs.length} photos`);
 			for (const img of imgs)
 				expect(Math.abs(img.shown - img.sizes) <= 3, `shown ${img.shown}px, sizes ${img.sizes}px`);
 		});
-		await check(`${p} · previous/next point at neighbouring releases`, async () => {
-			const prev = RELEASES[(i - 1 + RELEASES.length) % RELEASES.length].id;
-			const next = RELEASES[(i + 1) % RELEASES.length].id;
+		await check(`${path} · previous/next point at neighbouring projects`, async () => {
+			const prev = PROJECTS[(i - 1 + PROJECTS.length) % PROJECTS.length].id;
+			const next = PROJECTS[(i + 1) % PROJECTS.length].id;
 			const hrefs = await page.locator('.pn a').evaluateAll((as) => as.map((a) => a.getAttribute('href')));
-			expect(hrefs[0] === `/discography/${prev}` && hrefs[1] === `/discography/${next}`, hrefs.join(' / '));
+			expect(hrefs[0] === `/projects/${prev}` && hrefs[1] === `/projects/${next}`, hrefs.join(' / '));
 		});
-		if (r.id === 'macro-tick') {
-			await check(`${p} · describes the 16×2 LCD, not an OLED`, async () => {
+		if (p.id === 'macro-tick') {
+			await check(`${path} · describes the 16×2 LCD, not an OLED`, async () => {
 				const text = await page.locator('main').textContent();
 				expect(text.includes('16×2') && !text.includes('OLED'), 'display wording is wrong');
 			});
@@ -408,9 +457,9 @@ async function suite(browser, base) {
 				.evaluate((e) => [e.querySelector('button').getAttribute('aria-expanded'), e.querySelector('.jb').inert]);
 			expect(x === 'true' && !inert, `expanded=${x} inert=${inert}`);
 		});
-		await check('resume · education numbering continues after experience', async () => {
-			const n = (await page.locator('.edu .n').first().textContent()).trim();
-			expect(n === String(resume.experience.length + 1).padStart(2, '0'), `numbered ${n}`);
+		await check('resume · education shows degree and GPA', async () => {
+			const edu = await page.locator('.edu').first().textContent();
+			expect(edu.includes(resume.education[0].degree) && edu.includes('GPA'), `"${edu.trim()}"`);
 		});
 		await check('resume · every award and skill group is listed', async () => {
 			const awards = await page.locator('.awards li').count();
@@ -427,24 +476,24 @@ async function suite(browser, base) {
 			const pages = (body.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length;
 			expect(pages === 1, `${pages} pages`);
 		});
-		await check('resume · Credits link to GitHub and LinkedIn', async () => {
-			const hrefs = await page.locator('.credits a.row').evaluateAll((as) => as.map((a) => a.href));
+		await check('resume · Contact links to GitHub and LinkedIn', async () => {
+			const hrefs = await page.locator('.contact a.row').evaluateAll((as) => as.map((a) => a.href));
 			expect(hrefs.includes(site.links.github) && hrefs.includes(site.links.linkedin), hrefs.join(' / '));
 		});
 		await check('resume · Copy puts the email on the clipboard', async () => {
-			const btn = page.locator('.credits [data-copy-email]');
+			const btn = page.locator('.contact [data-copy-email]');
 			await btn.click();
 			await page.waitForFunction((b) => b.textContent.trim() === 'Copied', await btn.elementHandle());
 			const clip = await page.evaluate(() => navigator.clipboard.readText());
 			expect(clip === site.email, `clipboard "${clip}"`);
 		});
 		await check('resume · fast double-click on Copy still resets the label', async () => {
-			const btn = page.locator('.credits [data-copy-email]');
+			const btn = page.locator('.contact [data-copy-email]');
 			await btn.dblclick();
 			await page.waitForFunction((b) => b.textContent.trim() === 'Copy', await btn.elementHandle(), { timeout: 4000 });
 		});
 		await page.setViewportSize(PHONE);
-		await check('resume · on a phone the download card comes before experience', async () => {
+		await check('resume · on a phone the PDF card comes before experience', async () => {
 			const card = await page.locator('.take').boundingBox();
 			const exp = await page.locator('.main').boundingBox();
 			expect(card.y < exp.y, `card y=${card.y}, experience y=${exp.y}`);
@@ -459,36 +508,43 @@ async function suite(browser, base) {
 		expect((await page.locator('a[href="/"]').count()) > 0, 'no link home');
 		await page.close();
 	});
-	await check('routing · /discography redirects to the home page', async () => {
-		const { page } = await open(context, base, '/discography');
-		expect(new URL(page.url()).pathname === '/', `ended at ${page.url()}`);
-		await page.close();
-	});
+	for (const [from, to] of [
+		['/projects', '/'],
+		['/discography', '/'],
+		[`/discography/${PROJECTS[0].id}`, `/projects/${PROJECTS[0].id}`],
+	]) {
+		await check(`routing · ${from} redirects to ${to}`, async () => {
+			const { page } = await open(context, base, from);
+			const at = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
+			expect(at === to, `ended at ${page.url()}`);
+			await page.close();
+		});
+	}
 	await context.close();
 
-	// Without JavaScript, records stay off and every slot is a plain link.
+	// Without JavaScript, discs stay off and every project is a plain link.
 	{
 		const noJs = await browser.newContext({ viewport: DESKTOP, javaScriptEnabled: false });
 		const page = await noJs.newPage();
 		await page.goto(base + '/');
-		await check('no-JS · covers show, filters hide, slots link straight through', async () => {
+		await check('no-JS · covers show, filters hide, projects link straight through', async () => {
 			const rec = await page.$eval('.rec', (e) => getComputedStyle(e).display);
 			const chipsHidden = await page.$eval('[data-filters]', (e) => e.hidden);
-			expect(rec === 'none' && chipsHidden, `record display=${rec}, filters hidden=${chipsHidden}`);
+			expect(rec === 'none' && chipsHidden, `disc display=${rec}, filters hidden=${chipsHidden}`);
 			await Promise.all([
-				page.waitForURL(`**/discography/${RELEASES[0].id}`),
+				page.waitForURL(`**/projects/${PROJECTS[0].id}`),
 				page.locator('[data-slot]').first().click(),
 			]);
 		});
 		await noJs.close();
 	}
 
-	// Reduced motion: records stop.
+	// Reduced motion: discs stop.
 	{
 		const calm = await browser.newContext({ viewport: DESKTOP, reducedMotion: 'reduce' });
 		const page = await calm.newPage();
 		await page.goto(base + '/');
-		await check('reduced motion · records stop spinning', async () => {
+		await check('reduced motion · discs stop spinning', async () => {
 			const d = await page.$eval('.disc', (e) => parseFloat(getComputedStyle(e).animationDuration));
 			expect(d < 0.001, `animation-duration ${d}s`);
 		});
@@ -503,7 +559,8 @@ async function suite(browser, base) {
 const pct = (xs, p) => xs.toSorted((a, b) => a - b)[Math.min(xs.length - 1, Math.floor((p / 100) * xs.length))];
 const ms = (x) => `${Math.round(x)} ms`;
 
-const { server, base } = await startServer();
+const local = LIVE_URL ? null : await startServer();
+const base = LIVE_URL ?? local.base;
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
 const runs = [];
 let next = 0;
@@ -532,7 +589,7 @@ async function worker() {
 const started = performance.now();
 await Promise.all(Array.from({ length: WORKERS }, worker));
 await browser.close();
-server.close();
+local?.server.close();
 
 const allChecks = runs.flatMap((r) => r.results);
 const failures = allChecks.filter((c) => !c.ok);
@@ -542,6 +599,7 @@ const runMs = runs.map((r) => r.ms);
 const homeMs = runs.map((r) => r.timings['/']).filter(Boolean);
 
 console.log('\n================ report ================');
+console.log(`target:               ${LIVE_URL ?? 'local production build'}`);
 console.log(`runs:                 ${runs.length} (${WORKERS} in parallel), ${ms(performance.now() - started)} total`);
 console.log(`checks per run:       ${runs[0]?.results.length}`);
 console.log(`checks executed:      ${allChecks.length}`);
@@ -563,7 +621,15 @@ await mkdir(join(ROOT, 'tests/results'), { recursive: true });
 await writeFile(
 	join(ROOT, 'tests/results/report.json'),
 	JSON.stringify(
-		{ when: new Date().toISOString(), runs: runs.length, workers: WORKERS, failures: byCheck, runMs, homeMs },
+		{
+			when: new Date().toISOString(),
+			target: base,
+			runs: runs.length,
+			workers: WORKERS,
+			failures: byCheck,
+			runMs,
+			homeMs,
+		},
 		null,
 		2,
 	),

@@ -1,10 +1,8 @@
 ---
 title: PHANTOM-16
-type: LP
+category: Digital design
 started: 2026-05-01
-# No `finished` date yet: shows as "Recording since May 2026".
-catalog: 4
-rpm: '33⅓'
+# No `finished` date yet: shows as "In progress since May 2026".
 tagline: A 16-bit, 5-stage pipelined RISC processor, designed from scratch in synthesizable Verilog for a Tang Nano 9K FPGA.
 role: RTL design and verification
 stack: [Verilog, Icarus Verilog, Tang Nano 9K FPGA]
@@ -13,7 +11,7 @@ color: '#AFA9EC'
 ink: '#26215C'
 spin: 3.6
 motif: pipeline
-tracks:
+highlights:
   - { title: '5-stage pipeline: IF, ID, EX, MEM, WB', kind: Architecture }
   - { title: 'Custom 23-instruction ISA in R, I and J formats', kind: ISA }
   - { title: 9-operation latch-free ALU, kind: RTL }

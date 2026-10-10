@@ -1,10 +1,8 @@
 ---
 title: PantryPal
-type: Single
+category: Software
 started: 2026-06-01
 finished: 2026-06-30
-catalog: 3
-rpm: '45'
 tagline: Turns any recipe, whether a URL, a TikTok screenshot or a cookbook photo, into a priced, store-matched shopping list in under 10 seconds.
 role: Recipe pipeline and pricing, in a hackathon team
 stack: [Python, Vision AI, REST APIs, JSON-LD]
@@ -13,7 +11,7 @@ color: '#F0997B'
 ink: '#4A1B0C'
 spin: 4.6
 motif: grid
-tracks:
+highlights:
   - { title: Recipe URLs parsed from schema.org JSON-LD, kind: Input }
   - { title: Screenshot and photo extraction with vision AI, kind: Input }
   - { title: '8-stage pipeline: normalize, match, price', kind: Pipeline }

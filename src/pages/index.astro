@@ -1,39 +1,40 @@
 ---
-// Discography (home). Design: docs/prototype.html → Discography view; rules: docs/DESIGN.md.
+// Projects (home). Layout: docs/prototype.html; rules: docs/DESIGN.md.
 import Base from '../layouts/Base.astro';
 import Record from '../components/Record.astro';
-import ReleaseSlot from '../components/ReleaseSlot.astro';
-import { getReleases, pad2, releaseYear } from '../lib/releases';
+import ProjectSlot from '../components/ProjectSlot.astro';
+import { getProjects, pad2, projectNo } from '../lib/projects';
+import { CATEGORIES } from '../data/categories';
 import { site } from '../data/site';
 
-const releases = await getReleases();
-const latest = releases[0];
-// Only offer filters for release types that actually exist.
-const types = (['LP', 'EP', 'Single'] as const).filter((t) => releases.some((r) => r.data.type === t));
+const projects = await getProjects();
+const latest = projects[0];
+// Only offer filters for categories that actually have projects.
+const categories = CATEGORIES.filter((c) => projects.some((p) => p.data.category === c));
 ---
 
 <Base>
 	<section class="hero">
 		<div class="wrap hero-in">
-			<p class="lab">
-				{site.role} · catalog {site.catalogYears}
+			<p class="lab" style="--i: 0">
+				{site.role}
 			</p>
-			<h1 class="display">
-				Selected works,
+			<h1 class="display" style="--i: 1">
+				Hardware, built
 				<br />
-				<em>pressed on wax.</em>
+				<em>end to end.</em>
 			</h1>
-			<p class="intro">{site.intro}</p>
-			<div class="hero-foot">
+			<p class="intro" style="--i: 2">
+				{site.intro}
+			</p>
+			<div class="hero-foot" style="--i: 3">
 				{latest && (
-					<a class="now" href={`/discography/${latest.id}`}>
+					<a class="now" href={`/projects/${latest.id}`}>
 						<span class="mini">
 							<Record color={latest.data.color} ink={latest.data.ink} spin={2.2} />
 						</span>
-						Now spinning · {latest.data.title}
-						<span class="mono dim">
-							{latest.data.type}, {releaseYear(latest)}
-						</span>
+						{latest.data.finished ? 'Latest project' : 'Currently building'} · {latest.data.title}
+						<span class="mono dim">{latest.data.category}</span>
 					</a>
 				)}
 				<p class="avail">
@@ -44,38 +45,38 @@ const types = (['LP', 'EP', 'Single'] as const).filter((t) => releases.some((r) 
 		</div>
 	</section>
 
-	<section class="wrap sec" aria-labelledby="disco-title">
+	<section class="wrap sec" aria-labelledby="projects-title">
 		<div class="sec-head">
-			<h2 class="lab" id="disco-title">
-				Discography · {pad2(releases.length)} releases
+			<h2 class="lab" id="projects-title">
+				Projects · {pad2(projects.length)}
 			</h2>
 			<div class="chips" data-filters hidden>
-				{['All', ...types].map((t) => (
-					<button type="button" class="chip" data-filter={t} aria-pressed={t === 'All' ? 'true' : 'false'}>
-						{t}
+				{['All', ...categories].map((c) => (
+					<button type="button" class="chip" data-filter={c} aria-pressed={c === 'All' ? 'true' : 'false'}>
+						{c}
 					</button>
 				))}
 				<button type="button" class="lnk" data-reset>
-					Re-sleeve all
+					Reset
 				</button>
 			</div>
 		</div>
 
 		<ul class="grid" data-grid>
-			{releases.map((r) => (
-				<li data-type={r.data.type}>
-					<ReleaseSlot release={r} />
+			{projects.map((p, i) => (
+				<li data-category={p.data.category}>
+					<ProjectSlot project={p} no={projectNo(i, projects.length)} />
 				</li>
 			))}
 		</ul>
 		<p class="hint" data-hint hidden>
-			Tap a record to take it off. Tap the cover to open the release.
+			Tap a disc to reveal the project. Tap the cover to open it.
 		</p>
 	</section>
 </Base>
 
 <script>
-	const KEY = 'revealed-releases';
+	const KEY = 'revealed-projects';
 	const load = (): Set<string> => {
 		try {
 			return new Set(JSON.parse(sessionStorage.getItem(KEY) ?? '[]'));
@@ -96,8 +97,8 @@ const types = (['LP', 'EP', 'Single'] as const).filter((t) => releases.some((r) 
 	const revealed = load();
 
 	const label = (slot: HTMLAnchorElement) => {
-		const { title, cat } = slot.dataset;
-		slot.setAttribute('aria-label', slot.classList.contains('open') ? `Open ${title}` : `${cat}: reveal release`);
+		const { title, no } = slot.dataset;
+		slot.setAttribute('aria-label', slot.classList.contains('open') ? `Open ${title}` : `Project ${no}: reveal`);
 	};
 
 	if (grid) {
@@ -110,7 +111,7 @@ const types = (['LP', 'EP', 'Single'] as const).filter((t) => releases.some((r) 
 			label(slot);
 			slot.addEventListener('click', (e) => {
 				if (slot.classList.contains('open')) return; // second tap: follow the link
-				// Let Ctrl/Cmd/Shift-click and middle-click open the release in a new tab as usual.
+				// Let Ctrl/Cmd/Shift-click and middle-click open the project in a new tab as usual.
 				if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
 				e.preventDefault();
 				slot.classList.add('open');
@@ -130,10 +131,10 @@ const types = (['LP', 'EP', 'Single'] as const).filter((t) => releases.some((r) 
 			const target = e.target as HTMLElement;
 			const chip = target.closest<HTMLButtonElement>('[data-filter]');
 			if (chip) {
-				const type = chip.dataset.filter;
+				const category = chip.dataset.filter;
 				filters.querySelectorAll('[data-filter]').forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
-				grid.querySelectorAll<HTMLElement>('li[data-type]').forEach((li) => {
-					li.hidden = !(type === 'All' || li.dataset.type === type);
+				grid.querySelectorAll<HTMLElement>('li[data-category]').forEach((li) => {
+					li.hidden = !(category === 'All' || li.dataset.category === category);
 				});
 				return;
 			}
@@ -158,6 +159,19 @@ const types = (['LP', 'EP', 'Single'] as const).filter((t) => releases.some((r) 
 		display: grid;
 		gap: 20px;
 		padding-block: clamp(48px, 9vw, 104px) clamp(36px, 6vw, 64px);
+	}
+
+	/* Soft staggered entrance; skipped automatically under reduced motion. */
+	.hero-in > * {
+		animation: enter 0.8s var(--ease) both;
+		animation-delay: calc(var(--i) * 70ms);
+	}
+
+	@keyframes enter {
+		from {
+			opacity: 0;
+			transform: translate3d(0, 12px, 0);
+		}
 	}
 
 	.hero-in .lab {

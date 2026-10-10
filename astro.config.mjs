@@ -15,9 +15,12 @@ export default defineConfig({
 	// `export const prerender = false` (the resume email endpoint) run on Vercel.
 	adapter: vercel(),
 
-	// The grid lives on the home page; /discography alone would otherwise 404.
+	// The project grid lives on the home page. /discography/* is the old URL scheme, kept
+	// so links shared before the rename still work.
 	redirects: {
+		'/projects': '/',
 		'/discography': '/',
+		'/discography/[slug]': '/projects/[slug]',
 	},
 
 	// Self-hosted at build time, no runtime request to Google Fonts.
