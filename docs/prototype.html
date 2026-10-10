@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Approved design prototype (October 2026). Reference only: the real site is built in src/. Open this file in a browser. -->
+<title>Vinyl Portfolio Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+/* Layout: the site lives in a device stage (desktop browser or phone frame). Records grid → release sleeve page → resume liner notes. Single dark look by design. */
+:root{
+  color-scheme:dark;
+  --void:#050506;--bg:#0a0a0b;--raise:#0f0f11;--ln:#1d1d21;--ln2:#2c2c31;
+  --tx:#ededea;--mu:#8d8d87;--dim:#66665f;--body2:#c2c2bc;
+  --ac:#E8FF59;--err:#F09595;
+  --display:'Instrument Serif',ui-serif,Georgia,serif;
+  --sans:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--void);color:var(--tx);font-family:var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ac);outline-offset:3px;border-radius:4px}
+button{font:inherit;color:inherit}
+
+/* prototype chrome */
+.proto{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;max-width:1180px;margin-inline:auto;padding:14px 16px;font:12px var(--mono);color:var(--dim)}
+.proto b{font-weight:500;color:var(--mu)}
+.seg{display:inline-flex;border:1px solid var(--ln2);border-radius:999px;padding:3px}
+.seg button{font:500 12px var(--sans);color:var(--mu);background:none;border:0;border-radius:999px;padding:6px 14px;cursor:pointer;transition:background .25s,color .25s}
+.seg button[aria-pressed="true"]{background:var(--tx);color:var(--bg)}
+.stage{padding:0 16px 48px}
+.device{max-width:1180px;margin-inline:auto;border:1px solid var(--ln);border-radius:14px;overflow:clip;background:var(--bg);transition:max-width .55s var(--ease),border-radius .55s var(--ease)}
+.chrome{display:flex;align-items:center;gap:7px;padding:10px 14px;background:#121214;border-bottom:1px solid var(--ln)}
+.chrome i{width:10px;height:10px;border-radius:50%;background:#2a2a2f;display:block}
+.addr{flex:1;max-width:420px;margin-inline:auto;text-align:center;font:12px var(--mono);color:var(--mu);background:var(--bg);border-radius:7px;padding:5px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.device.phone{max-width:390px;border:10px solid #1c1c1f;border-radius:50px}
+.device.phone .chrome{display:none}
+.device.phone .screen{height:min(800px,calc(100vh - 120px));overflow-y:auto;scrollbar-width:none}
+.device.phone .screen::-webkit-scrollbar{display:none}
+@media (max-width:700px){
+  .proto .seg{display:none}
+  .stage{padding:0}
+  .device,.device.phone{border:0;border-radius:0;max-width:none}
+  .chrome{display:none}
+  .device.phone .screen{height:auto;overflow:visible}
+}
+
+/* site shell */
+#app{container:site / inline-size}
+.shell{--gut:48px;background:var(--bg);min-height:680px;display:flex;flex-direction:column}
+@container site (max-width:760px){.shell{--gut:26px}}
+@container site (max-width:480px){.shell{--gut:20px}}
+.mono{font-family:var(--mono)}
+.dim{color:var(--dim)}
+.lab{font:500 11px var(--mono);color:var(--dim);letter-spacing:.09em;text-transform:uppercase;margin:0 0 12px}
+.lnk{background:none;border:0;padding:0;color:var(--mu);font:12px var(--mono);text-decoration:none;cursor:pointer;transition:color .2s}
+.lnk:hover{color:var(--tx)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:500 13px var(--sans);padding:10px 18px;border-radius:999px;border:1px solid var(--ln2);color:var(--tx);background:transparent;cursor:pointer;text-decoration:none;transition:border-color .2s,background .2s,opacity .2s}
+.btn:hover{border-color:#55555b}
+.btn.pri{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+.btn.pri:hover{background:#fff}
+
+.nav{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:18px var(--gut);border-bottom:1px solid var(--ln);background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.brand{font:400 25px/1 var(--display);letter-spacing:-.01em;text-decoration:none}
+.nav nav{display:flex;gap:24px}
+.nav nav a{font-size:13px;color:var(--mu);text-decoration:none;transition:color .2s}
+.nav nav a:hover{color:var(--tx)}
+.nav nav a[aria-current="page"]{color:var(--tx)}
+.nav nav a[aria-current="page"]::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--ac);margin-right:7px;vertical-align:2px}
+
+.view{flex:1;transition:opacity .18s ease,transform .18s ease}
+.view.leaving{opacity:0;transform:translateY(6px)}
+
+/* records */
+.disc{position:relative;width:100%;height:100%}
+.spin{width:100%;height:100%;animation:spin var(--dur,5s) linear infinite;will-change:transform}
+.spin2{width:100%;height:100%}
+.spin svg,.spin2 svg{display:block;width:100%;height:100%}
+.sheen{position:absolute;inset:0;border-radius:50%;pointer-events:none;background:conic-gradient(from 25deg,transparent 0 5%,rgba(255,255,255,.085) 11%,transparent 18% 50%,rgba(255,255,255,.085) 61%,transparent 68%)}
+@keyframes spin{to{transform:rotate(1turn)}}
+
+/* discography */
+.hero{display:grid;gap:20px;padding:clamp(44px,9cqi,104px) var(--gut) clamp(36px,6cqi,64px);border-bottom:1px solid var(--ln)}
+.hero h1{font:400 clamp(48px,9.2cqi,116px)/.92 var(--display);letter-spacing:-.028em;margin:0;text-wrap:balance}
+.hero h1 em{color:var(--ac)}
+.intro{max-width:48ch;margin:0;font-size:15px;line-height:1.6;color:var(--mu)}
+.now{display:inline-flex;align-items:center;gap:10px;width:max-content;max-width:100%;padding:7px 14px 7px 8px;border:1px solid var(--ln2);border-radius:999px;font-size:13px;text-decoration:none;transition:border-color .2s}
+.now:hover{border-color:#55555b}
+.now .mini{width:22px;height:22px;flex:none}
+.now .mini .spin{--dur:2.2s}
+.sec{padding:32px var(--gut) 60px}
+.sec-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;margin-bottom:26px}
+.chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.chip{font:12px var(--mono);color:var(--mu);border:1px solid var(--ln2);background:none;border-radius:999px;padding:5px 12px;cursor:pointer;transition:all .2s}
+.chip:hover{color:var(--tx)}
+.chip[aria-pressed="true"]{color:var(--bg);background:var(--tx);border-color:var(--tx)}
+.chips .lnk{margin-left:10px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:32px 26px}
+@container site (max-width:820px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container site (max-width:480px){.grid{gap:24px 14px}}
+.slot{cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
+.sq{position:relative;aspect-ratio:1;max-width:100%;border-radius:3px}
+.slot:focus-visible .sq{outline:2px solid var(--ac);outline-offset:5px}
+.art{position:absolute;inset:0;border-radius:3px;overflow:hidden;transform:scale(.96);transition:transform .7s var(--ease)}
+.art svg{display:block;width:100%;height:100%}
+.rec{position:absolute;inset:0;transition:opacity .45s ease,transform .7s var(--ease)}
+.slot.open .art{transform:none}
+.slot.open .rec{opacity:0;transform:scale(1.12);pointer-events:none}
+@media (hover:hover){
+  .slot:not(.open):hover .rec{transform:translateY(-4px)}
+  .slot.open:hover .art{transform:translateY(-5px)}
+}
+.instant .rec,.instant .art,.instant .cap>*{transition:none!important}
+.cap{display:grid;margin-top:14px;font-size:14px}
+.cap>*{grid-area:1/1;transition:opacity .35s ease}
+.cap .pre{font:12px var(--mono);color:var(--dim)}
+.cap .post{opacity:0;display:flex;justify-content:space-between;align-items:baseline;gap:8px;min-width:0}
+.cap .post .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cap .post .m{font:11px var(--mono);color:var(--mu);white-space:nowrap}
+.slot.open .cap .post{opacity:1}
+.slot.open .cap .pre{opacity:0}
+@container site (max-width:480px){.cap{font-size:13px}.cap .post{flex-direction:column;gap:2px}}
+.hint{margin:36px 0 0;font:12px var(--mono);color:var(--dim)}
+
+/* release */
+.rel{padding:28px var(--gut) 56px}
+.rel-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:40px}
+.rel-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:64px;align-items:start}
+@container site (max-width:760px){.rel-grid{grid-template-columns:minmax(0,1fr);gap:36px}.rel-top{margin-bottom:28px}}
+.sleeve{position:relative;width:72%;aspect-ratio:1;max-width:100%}
+@container site (max-width:760px){.sleeve{width:66%}}
+.sleeve .out{position:absolute;left:32%;top:3%;width:94%;height:94%}
+.sleeve .jacket{position:absolute;inset:0;border-radius:3px;overflow:hidden;box-shadow:14px 0 34px rgba(0,0,0,.6)}
+.sleeve .jacket svg{display:block;width:100%;height:100%}
+.pull{animation:pull 1.15s .12s var(--ease) both}
+@keyframes pull{from{transform:translateX(-34%)}to{transform:none}}
+.rise{animation:rise .65s .08s var(--ease) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.rel h1{font:400 clamp(46px,7.4cqi,84px)/.98 var(--display);letter-spacing:-.025em;margin:4px 0 14px;text-wrap:balance}
+.tag{font-size:15px;line-height:1.6;color:var(--mu);margin:0 0 24px;max-width:46ch}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:30px}
+@container site (max-width:480px){.actions .btn{flex:1}}
+.meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px;margin:0 0 30px;padding:16px 0;border-block:1px solid var(--ln)}
+.meta div{min-width:0}
+.meta dt{font:11px var(--mono);color:var(--dim);letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px}
+.meta dd{margin:0;font-size:14px}
+.tracks{list-style:none;margin:0 0 30px;padding:0}
+.tracks li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:11px 0;border-top:1px solid var(--ln);font-size:14px;transition:color .2s}
+.tracks li:last-child{border-bottom:1px solid var(--ln)}
+.tracks li:hover{color:var(--ac)}
+.tracks .n,.tracks .k{font:12px var(--mono);color:var(--dim)}
+.tracks .k{font-size:11px}
+.notes p{font-size:15px;line-height:1.7;color:var(--body2);margin:0 0 12px;max-width:62ch}
+.shots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.shot{aspect-ratio:16/10;max-width:100%;background:#111113;border:1px solid var(--ln);border-radius:4px;display:flex;flex-direction:column;justify-content:flex-end;padding:12px;font:11px var(--mono);color:var(--dim)}
+@container site (max-width:560px){
+  .shots{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;margin-inline:calc(var(--gut) * -1);padding-inline:var(--gut);scrollbar-width:none}
+  .shots::-webkit-scrollbar{display:none}
+  .shot{flex:0 0 80%;scroll-snap-align:center}
+}
+.pn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:52px;padding-top:20px;border-top:1px solid var(--ln)}
+.pn a{text-decoration:none;display:grid;gap:4px;padding:6px 0}
+.pn a .lab{margin:0}
+.pn a .pt{font:400 26px/1.1 var(--display);transition:color .2s}
+.pn a:hover .pt{color:var(--ac)}
+.pn a.nx{text-align:right}
+
+/* resume */
+.rhero{display:grid;gap:18px;padding:clamp(44px,8cqi,96px) var(--gut) clamp(34px,5cqi,56px);border-bottom:1px solid var(--ln)}
+.rhero h1{font:400 clamp(48px,8.4cqi,104px)/.94 var(--display);letter-spacing:-.028em;margin:0}
+.rhero h1 em{color:var(--ac)}
+.res{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);grid-template-areas:"main take" "main credits";gap:28px 64px;padding:40px var(--gut) 60px;align-items:start}
+.res-main{grid-area:main;min-width:0}
+.take{grid-area:take}
+.credits{grid-area:credits}
+@container site (max-width:760px){.res{grid-template-columns:minmax(0,1fr);grid-template-areas:"take" "main" "credits";gap:44px}}
+.block{margin-bottom:40px}
+.job{border-top:1px solid var(--ln)}
+.job:last-child{border-bottom:1px solid var(--ln)}
+.jh{width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) auto 20px;gap:8px;align-items:baseline;padding:14px 0;background:none;border:0;text-align:left;cursor:pointer;font-size:14px;transition:color .2s}
+.jh:hover{color:var(--ac)}
+.jh .n{font:12px var(--mono);color:var(--dim)}
+.jh .co{color:var(--mu)}
+.jh .d{font:11px var(--mono);color:var(--dim);white-space:nowrap}
+.jh .pl{font:15px var(--mono);color:var(--dim);text-align:right;transition:transform .45s var(--ease)}
+.job.open .pl{transform:rotate(45deg)}
+.jb{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s var(--ease)}
+.job.open .jb{grid-template-rows:1fr}
+.jb>div{overflow:hidden}
+.jb ul{margin:0 0 16px 42px;padding:0;font-size:14px;line-height:1.65;color:var(--body2)}
+.jb li{margin-bottom:4px}
+@container site (max-width:480px){.jh{grid-template-columns:28px minmax(0,1fr) 18px}.jh .d{grid-column:2;grid-row:2}.jb ul{margin-left:36px}}
+.edu{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:14px 0;border-block:1px solid var(--ln);font-size:14px}
+.edu .n{font:12px var(--mono);color:var(--dim)}
+.edu .d{font:11px var(--mono);color:var(--dim)}
+.inst{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px 12px;align-items:baseline}
+@container site (max-width:480px){.inst{grid-template-columns:minmax(0,1fr);gap:6px}.inst>div{margin-bottom:8px}}
+.inst>span{font:11px var(--mono);color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+.pill{display:inline-block;font-size:13px;padding:4px 11px;border:1px solid var(--ln2);border-radius:999px;margin:0 5px 7px 0;color:#d8d8d3}
+
+.card{border:1px solid var(--ln);border-radius:8px;background:var(--raise);overflow:hidden}
+.stop{position:relative;height:104px;overflow:hidden;border-bottom:1px solid var(--ln)}
+.rw{position:absolute;left:50%;top:18px;width:176px;height:176px;margin-left:-88px;transition:transform .95s cubic-bezier(.5,0,.2,1),opacity .6s .2s}
+.card.sending .spin2{animation:spin .55s linear infinite}
+.card.done .rw{transform:translateY(-118%);opacity:0}
+.msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .5s .6s;font:italic 400 26px var(--display);color:var(--ac)}
+.card.done .msg{opacity:1}
+.cb{padding:20px;display:grid;gap:0}
+.cb h2{font:400 28px/1.1 var(--display);margin:0 0 4px}
+.cb .sub{font-size:13px;color:var(--mu);margin:0 0 16px;line-height:1.5}
+.note{font:11px var(--mono);color:var(--dim);margin:8px 0 0;min-height:14px}
+.or{display:flex;align-items:center;gap:10px;margin:14px 0}
+.or::before,.or::after{content:'';flex:1;height:1px;background:var(--ln)}
+.or span{font:11px var(--mono);color:var(--dim)}
+.fl{display:block;font:11px var(--mono);color:var(--dim);letter-spacing:.07em;text-transform:uppercase;margin-bottom:7px}
+.f{width:100%;height:42px;background:var(--bg);border:1px solid var(--ln2);border-radius:8px;color:var(--tx);font:14px var(--sans);padding:0 12px;outline:none;transition:border-color .2s;margin-bottom:8px}
+.f::placeholder{color:var(--dim)}
+.f:focus{border-color:var(--ac)}
+.f.bad{border-color:var(--err)}
+.err{font-size:12px;color:var(--err);margin:0 0 8px;min-height:16px}
+.fine{font:11px/1.5 var(--mono);color:var(--dim);margin:12px 0 0}
+.ok p{margin:0 0 6px;font-size:14px;line-height:1.55}
+.ok .who{color:var(--ac);word-break:break-all}
+
+.credits .row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-top:1px solid var(--ln);font-size:14px;text-decoration:none;transition:color .2s}
+.credits .row:last-child{border-bottom:1px solid var(--ln)}
+.credits a.row:hover{color:var(--ac)}
+.credits .v{font:12px var(--mono);color:var(--mu);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{font:12px var(--mono);color:var(--mu);background:none;border:1px solid var(--ln2);border-radius:999px;padding:3px 10px;cursor:pointer;margin-left:8px;transition:color .2s,border-color .2s}
+.copy:hover{color:var(--tx);border-color:#55555b}
+
+.foot{border-top:1px solid var(--ln);padding:22px var(--gut);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px 24px;font-size:13px;color:var(--mu)}
+.foot .links{display:flex;flex-wrap:wrap;gap:18px}
+.foot a{text-decoration:none;transition:color .2s}
+.foot a:hover{color:var(--tx)}
+
+@media (prefers-reduced-motion:reduce){
+  .spin,.card.sending .spin2{animation:none}
+  .pull,.rise{animation:none}
+  .rec,.art,.rw,.jb,.pl,.view,.device{transition:opacity .2s!important}
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="grooves" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="100" fill="#0d0d0f"/>
+<g fill="none" stroke="#19191c" stroke-width=".6"><circle cx="100" cy="100" r="95"/><circle cx="100" cy="100" r="91"/><circle cx="100" cy="100" r="87"/><circle cx="100" cy="100" r="83"/><circle cx="100" cy="100" r="77"/><circle cx="100" cy="100" r="73"/><circle cx="100" cy="100" r="69"/><circle cx="100" cy="100" r="61"/><circle cx="100" cy="100" r="57"/><circle cx="100" cy="100" r="53"/><circle cx="100" cy="100" r="49"/><circle cx="100" cy="100" r="45"/></g>
+<g fill="none" stroke="#2a2a2f" stroke-width="1.1"><circle cx="100" cy="100" r="80"/><circle cx="100" cy="100" r="65"/></g>
+<circle cx="100" cy="100" r="99.4" fill="none" stroke="#2a2a2f" stroke-width="1.2"/>
+</symbol></defs></svg>
+
+<div class="proto">
+  <span><b>Vinyl portfolio</b> · prototype with sample content</span>
+  <div class="seg" role="group" aria-label="Preview size">
+    <button type="button" data-mode="desktop" aria-pressed="true">Desktop</button>
+    <button type="button" data-mode="phone" aria-pressed="false">Phone</button>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="device" id="device">
+    <div class="chrome"><i></i><i></i><i></i><span class="addr" id="addr">yourname.dev</span></div>
+    <div class="screen" id="screen">
+      <div id="app">
+        <div class="shell">
+          <header class="nav">
+            <a class="brand" href="#discography" data-go="discography">Harshit</a>
+            <nav aria-label="Main">
+              <a href="#discography" data-go="discography" data-nav="discography">Discography</a>
+              <a href="#resume" data-go="resume" data-nav="resume">Resume</a>
+            </nav>
+          </header>
+          <main class="view" id="view"></main>
+          <footer class="foot">
+            <span>Harshit · pressed in 2026</span>
+            <div class="links">
+              <a href="https://github.com/" target="_blank" rel="noopener">GitHub ↗</a>
+              <a href="https://www.linkedin.com/" target="_blank" rel="noopener">LinkedIn ↗</a>
+              <span class="mono" style="font-size:12px">hello@yourname.dev<button class="copy" type="button" data-copy>Copy</button></span>
+            </div>
+          </footer>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const R=[
+ {id:'signal',n:'Signal',type:'LP',date:'March 2026',yr:2026,cat:'Cat. 004',rpm:'33⅓',dur:3.6,c:'#AFA9EC',ink:'#26215C',
+  tag:'A realtime chat platform for small communities, built to feel instant on bad connections.',
+  role:'Solo, full stack',stack:'Astro, TypeScript, Postgres',status:'Live, 1.2k users',
+  tracks:[['Realtime chat rooms','Feature'],['Magic-link sign in','Feature'],['Edge deploy on Vercel','Infra'],['Load tested to 10k sockets','Perf']],
+  notes:['Group chats for clubs kept dying in giant messaging apps, so I built a small, fast place for them to live.','The hardest call was moving presence and typing indicators to the edge, which cut message latency roughly in half. Next time I would design the permissions model before the UI.']},
+ {id:'night-market',n:'Night Market',type:'EP',date:'October 2025',yr:2025,cat:'Cat. 003',rpm:'45',dur:6,c:'#F0997B',ink:'#4A1B0C',
+  tag:'A live map of street-food vendors, with stock levels updated by the vendors themselves.',
+  role:'Frontend lead, team of 3',stack:'React, FastAPI, Mapbox',status:'Archived',
+  tracks:[['Interactive vendor map','Feature'],['Live inventory sync','Feature'],['Offline mode','Feature']],
+  notes:['Built in a semester with two classmates. I owned the map, the offline cache and the design system.','We learned that vendors update from their phones mid-rush, so every action had to work with one thumb.']},
+ {id:'paper-trail',n:'Paper Trail',type:'Single',date:'June 2025',yr:2025,cat:'Cat. 002',rpm:'45',dur:4.6,c:'#5DCAA5',ink:'#04342C',
+  tag:'Turns a folder of receipt PDFs into a clean, searchable expense ledger.',
+  role:'Solo',stack:'Python, SQLite',status:'Open source',
+  tracks:[['PDF receipt parser','Feature'],['CSV and ledger export','Feature']],
+  notes:['A weekend project that grew a small following. The parser handles twelve receipt layouts and falls back to manual review for the rest.']},
+ {id:'low-tide',n:'Low Tide',type:'EP',date:'August 2024',yr:2024,cat:'Cat. 001',rpm:'33⅓',dur:5.2,c:'#85B7EB',ink:'#042C53',
+  tag:'A tide and swell forecast that answers one question: is it worth going out this morning?',
+  role:'Solo',stack:'Next.js, NOAA API',status:'Live',
+  tracks:[['Swell score','Feature'],['Morning push alerts','Feature'],['Station picker','Feature']],
+  notes:['My first shipped project. It taught me caching the hard way, after one bad day of API rate limits.']}
+];
+const pad=n=>String(n).padStart(2,'0');
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function art(r){
+ const t=(x,y,s,anchor)=>`<text x="${x}" y="${y}" ${anchor?'text-anchor="end"':''} font-family="Instrument Serif, Georgia, serif" font-style="italic" font-size="${s}" fill="${r.ink}">${r.n}</text>`;
+ let g='';
+ if(r.id==='signal') g=`<g fill="none" stroke="${r.ink}" stroke-width=".7">${[22,36,50,64,78,92].map(v=>`<circle cx="0" cy="100" r="${v}"/>`).join('')}</g><circle cx="0" cy="100" r="9" fill="${r.ink}"/>${t(91,19,15,1)}`;
+ if(r.id==='night-market'){const pts=[];for(let y=20;y<=60;y+=20)for(let x=20;x<=80;x+=20)pts.push([x,y]);const on=['40,20','80,40','20,60','60,60'];
+  g=pts.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="6" fill="${on.includes(x+','+y)?r.ink:'none'}" stroke="${r.ink}" stroke-width=".7"/>`).join('')+t(9,90,14)}
+ if(r.id==='paper-trail') g=`<g fill="${r.c}" stroke="${r.ink}" stroke-width=".7"><rect x="30" y="14" width="42" height="54" transform="rotate(-9 51 41)"/><rect x="30" y="14" width="42" height="54" transform="rotate(5 51 41)"/><rect x="30" y="14" width="42" height="54"/></g><g stroke="${r.ink}" stroke-width=".5">${[[26,65],[32,65],[38,58],[44,65],[50,52]].map(([y,x2])=>`<line x1="37" y1="${y}" x2="${x2}" y2="${y}"/>`).join('')}</g>${t(9,90,14)}`;
+ if(r.id==='low-tide') g=`<circle cx="72" cy="30" r="11" fill="${r.ink}"/><g fill="none" stroke="${r.ink}" stroke-width=".8">${[58,66,74,82,90].map(y=>`<path d="M0 ${y} Q12.5 ${y-6} 25 ${y} T50 ${y} T75 ${y} T100 ${y}"/>`).join('')}</g>${t(9,22,15)}`;
+ return `<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="${r.c}"/>${g}</svg>`;
+}
+function record(r,dur,top,bottom){
+ return `<div class="disc"><div class="spin" style="--dur:${dur||r.dur}s"><div class="spin2"><svg viewBox="0 0 200 200" aria-hidden="true"><use href="#grooves"/><circle cx="100" cy="100" r="34" fill="${r.c}"/><circle cx="100" cy="100" r="29" fill="none" stroke="${r.ink}" stroke-opacity=".3" stroke-width=".6"/><text x="100" y="84" text-anchor="middle" font-family="Geist Mono, monospace" font-size="6" letter-spacing="1.2" fill="${r.ink}">${top||r.cat.toUpperCase()}</text><text x="100" y="121" text-anchor="middle" font-family="Geist Mono, monospace" font-size="5" letter-spacing=".6" fill="${r.ink}" opacity=".7">${bottom||r.rpm+' RPM'}</text><circle cx="100" cy="100" r="2.6" fill="#0a0a0b"/></svg></div></div><div class="sheen"></div></div>`;
+}
+
+const opened=new Set();let filter='All';
+const view=document.getElementById('view'),addr=document.getElementById('addr'),screen=document.getElementById('screen'),device=document.getElementById('device');
+
+function renderDisc(){
+ const latest=R[0];
+ view.innerHTML=`
+ <section class="hero">
+  <p class="lab" style="margin:0">Software engineer · catalog 2024–2026</p>
+  <h1>Selected works,<br><em>pressed on wax.</em></h1>
+  <p class="intro">I build web products end to end, from the database to the last animation. Every project here is a release. Take a record off to see what's underneath.</p>
+  <a class="now" href="#${latest.id}" data-go="${latest.id}"><span class="mini">${record(latest,2.2,' ',' ')}</span>Now spinning · ${latest.n} <span class="mono dim" style="font-size:11px">${latest.type}, ${latest.yr}</span></a>
+ </section>
+ <section class="sec">
+  <div class="sec-head">
+   <p class="lab" style="margin:0">Discography · ${pad(R.length)} releases</p>
+   <div class="chips">${['All','LP','EP','Single'].map(t=>`<button type="button" class="chip" data-filter="${t}" aria-pressed="${t===filter}">${t}</button>`).join('')}<button type="button" class="lnk" data-reset>Re-sleeve all</button></div>
+  </div>
+  <div class="grid instant">${R.map(r=>`
+   <article class="slot${opened.has(r.id)?' open':''}" data-id="${r.id}" data-type="${r.type}" tabindex="0" role="button" aria-label="${opened.has(r.id)?'Open '+r.n:r.cat+', reveal release'}">
+    <div class="sq"><div class="art">${art(r)}</div><div class="rec">${record(r)}</div></div>
+    <div class="cap"><span class="pre">${r.cat} · reveal</span><span class="post"><span class="t">${r.n}</span><span class="m">${r.type} · ${r.yr}</span></span></div>
+   </article>`).join('')}</div>
+  <p class="hint">Tap a record to take it off. Tap the cover to open the release.</p>
+ </section>`;
+ applyFilter();
+ const g=view.querySelector('.grid');requestAnimationFrame(()=>requestAnimationFrame(()=>g.classList.remove('instant')));
+}
+function applyFilter(){view.querySelectorAll('.slot').forEach(s=>{s.hidden=!(filter==='All'||s.dataset.type===filter)});view.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.filter===filter))}
+
+function renderRelease(id){
+ const i=R.findIndex(r=>r.id===id),r=R[i],pv=R[(i-1+R.length)%R.length],nx=R[(i+1)%R.length];
+ view.innerHTML=`
+ <section class="rel">
+  <div class="rel-top"><a class="lnk" href="#discography" data-go="discography">← Discography</a><span class="mono dim" style="font-size:11px">${r.cat} · ${pad(i+1)} of ${pad(R.length)}</span></div>
+  <div class="rel-grid">
+   <div><div class="sleeve"><div class="out pull">${record(r,7)}</div><div class="jacket">${art(r)}</div></div></div>
+   <div class="rise">
+    <p class="lab" style="margin:0">${r.type} · Released ${r.date}</p>
+    <h1>${r.n}</h1>
+    <p class="tag">${r.tag}</p>
+    <div class="actions"><a class="btn pri" href="https://github.com/" target="_blank" rel="noopener">Source on GitHub ↗</a><a class="btn" href="https://github.com/" target="_blank" rel="noopener">Live demo ↗</a></div>
+    <dl class="meta"><div><dt>Role</dt><dd>${r.role}</dd></div><div><dt>Stack</dt><dd>${r.stack}</dd></div><div><dt>Status</dt><dd>${r.status}</dd></div><div><dt>Speed</dt><dd>${r.rpm} RPM</dd></div></dl>
+    <p class="lab">Tracklist</p>
+    <ol class="tracks">${r.tracks.map((t,j)=>`<li><span class="n">${pad(j+1)}</span><span>${t[0]}</span><span class="k">${t[1]}</span></li>`).join('')}</ol>
+    <p class="lab">Liner notes</p>
+    <div class="notes">${r.notes.map(p=>`<p>${p}</p>`).join('')}</div>
+   </div>
+  </div>
+  <p class="lab" style="margin-top:56px">Inside the sleeve</p>
+  <div class="shots">${[1,2,3].map(k=>`<div class="shot"><span>Screenshot ${k}</span><span>1600 × 1000</span></div>`).join('')}</div>
+  <nav class="pn" aria-label="More releases"><a href="#${pv.id}" data-go="${pv.id}"><span class="lab">← Previous</span><span class="pt">${pv.n}</span></a><a class="nx" href="#${nx.id}" data-go="${nx.id}"><span class="lab">Next →</span><span class="pt">${nx.n}</span></a></nav>
+ </section>`;
+}
+
+const resumeRec={c:'#E8FF59',ink:'#0a0a0b',dur:6};
+const takeForm=`
+ <label class="fl" for="em">Email it to me</label>
+ <input class="f" id="em" type="email" placeholder="name@company.com" autocomplete="email">
+ <input class="f" id="co" type="text" placeholder="Company (optional)" autocomplete="organization">
+ <p class="err" id="er" role="alert"></p>
+ <button type="button" class="btn" data-send>Send me a copy</button>
+ <p class="fine">Only used to send this file. Spam-protected.</p>`;
+function renderResume(){
+ view.innerHTML=`
+ <section class="rhero">
+  <p class="lab" style="margin:0">Resume · updated October 2026</p>
+  <h1>The full <em>credits.</em></h1>
+  <p class="intro">Software engineer who builds fast, well-crafted web products, and sweats the details people feel but rarely notice.</p>
+ </section>
+ <div class="res">
+  <div class="res-main">
+   <div class="block"><p class="lab">Side A · Experience</p>
+    ${[
+     ['Software engineer','Company A','2025 — now',['Shipped a scheduling feature now used by 8,000 people a week.','Moved rendering to the edge and cut page load time by 40%.','Mentored two interns through their first production launches.']],
+     ['Software engineer intern','Company B','Summer 2024',['Built an internal metrics dashboard adopted by three teams.','Replaced a nightly batch job with an event stream, saving 6 hours of lag.']],
+     ['Teaching assistant','University','2023 — 24',['Ran weekly data structures labs for 60 students.']]
+    ].map((j,k)=>`<div class="job${k===0?' open':''}"><button type="button" class="jh" data-row aria-expanded="${k===0}"><span class="n">${pad(k+1)}</span><span>${j[0]} <span class="co">· ${j[1]}</span></span><span class="d">${j[2]}</span><span class="pl" aria-hidden="true">+</span></button><div class="jb"><div><ul>${j[3].map(b=>`<li>${b}</li>`).join('')}</ul></div></div></div>`).join('')}
+   </div>
+   <div class="block"><p class="lab">Side B · Education</p>
+    <div class="edu"><span class="n">04</span><span>B.S. Computer Science <span style="color:var(--mu)">· University</span></span><span class="d">2021 — 25</span></div>
+   </div>
+   <div class="block" style="margin-bottom:0"><p class="lab">Instruments</p>
+    <div class="inst">
+     <span>Languages</span><div>${['TypeScript','Python','SQL','Go'].map(x=>`<span class="pill">${x}</span>`).join('')}</div>
+     <span>Frameworks</span><div>${['Astro','React','Next.js','FastAPI'].map(x=>`<span class="pill">${x}</span>`).join('')}</div>
+     <span>Infrastructure</span><div>${['Postgres','Docker','AWS','Vercel'].map(x=>`<span class="pill">${x}</span>`).join('')}</div>
+    </div>
+   </div>
+  </div>
+  <aside class="take"><div class="card" id="card">
+   <div class="stop"><div class="rw">${record(resumeRec,6,'RESUME','2026 PRESSING')}</div><div class="msg">Shipped.</div></div>
+   <div class="cb">
+    <h2>Take a copy home</h2>
+    <p class="sub">One page, always the latest version.</p>
+    <button type="button" class="btn pri" data-dl>Download PDF ↓</button>
+    <p class="note" id="dlnote"></p>
+    <div class="or"><span>or</span></div>
+    <div id="fa">${takeForm}</div>
+   </div>
+  </div></aside>
+  <section class="credits" aria-label="Credits and contact"><p class="lab">Credits</p>
+   <a class="row" href="https://github.com/" target="_blank" rel="noopener"><span>GitHub</span><span class="v">github.com/yourname ↗</span></a>
+   <a class="row" href="https://www.linkedin.com/" target="_blank" rel="noopener"><span>LinkedIn</span><span class="v">in/yourname ↗</span></a>
+   <div class="row"><span>Email</span><span style="display:flex;align-items:center;min-width:0"><span class="v">hello@yourname.dev</span><button type="button" class="copy" data-copy>Copy</button></span></div>
+   <div class="row"><span>Based in</span><span class="v">Your city · open to remote</span></div>
+  </section>
+ </div>`;
+}
+
+function render(id){
+ if(id==='resume')renderResume();else if(R.some(r=>r.id===id))renderRelease(id);else{id='discography';renderDisc()}
+ const rel=R.some(r=>r.id===id);
+ addr.textContent='yourname.dev'+(id==='discography'?'':rel?'/discography/'+id:'/'+id);
+ document.querySelectorAll('[data-nav]').forEach(a=>a.dataset.nav===(rel?'discography':id)?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
+ try{history.replaceState(null,'','#'+id)}catch(e){}
+}
+let busy=false;
+function go(id){
+ if(busy)return;busy=true;view.classList.add('leaving');
+ setTimeout(()=>{render(id);screen.scrollTop=0;if(!device.classList.contains('phone')&&device.getBoundingClientRect().top<0)device.scrollIntoView({block:'start'});requestAnimationFrame(()=>{view.classList.remove('leaving');busy=false})},180);
+}
+
+function reveal(s){
+ if(!s.classList.contains('open')){s.classList.add('open');opened.add(s.dataset.id);s.setAttribute('aria-label','Open '+R.find(r=>r.id===s.dataset.id).n);return}
+ go(s.dataset.id);
+}
+function send(){
+ const em=document.getElementById('em'),er=document.getElementById('er'),v=em.value.trim();
+ if(!v){er.textContent='Enter your email first.';em.classList.add('bad');em.focus();return}
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){er.textContent='That email doesn’t look right. Check it and try again.';em.classList.add('bad');em.focus();return}
+ const card=document.getElementById('card'),fa=document.getElementById('fa'),b=fa.querySelector('[data-send]');
+ b.textContent='Pressing your copy…';b.style.pointerEvents='none';b.style.opacity='.6';card.classList.add('sending');
+ setTimeout(()=>{card.classList.remove('sending');card.classList.add('done');
+  fa.innerHTML=`<div class="ok"><p>On its way to <span class="who">${esc(v)}</span>.</p><p style="font-size:13px;color:var(--mu)">It usually lands within a minute or two.</p><p class="fine" style="margin:4px 0 14px">Prototype: nothing was actually sent.</p><button type="button" class="lnk" data-again>Send to another address</button></div>`},1500);
+}
+function copyEmail(btn){
+ const done=t=>{const o=btn.textContent;btn.textContent=t;setTimeout(()=>btn.textContent=o,1600)};
+ try{navigator.clipboard.writeText('hello@yourname.dev').then(()=>done('Copied'),()=>done('Select to copy'))}catch(e){done('Select to copy')}
+}
+function setMode(m){
+ device.classList.toggle('phone',m==='phone');
+ document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===m));
+ try{localStorage.setItem('vp-mode',m)}catch(e){}
+}
+
+document.addEventListener('click',e=>{
+ const t=e.target;
+ const m=t.closest('[data-mode]');if(m){setMode(m.dataset.mode);return}
+ const g=t.closest('[data-go]');if(g){e.preventDefault();go(g.dataset.go);return}
+ const f=t.closest('[data-filter]');if(f){filter=f.dataset.filter;applyFilter();return}
+ if(t.closest('[data-reset]')){opened.clear();view.querySelectorAll('.slot.open').forEach(s=>{s.classList.remove('open');s.setAttribute('aria-label',R.find(r=>r.id===s.dataset.id).cat+', reveal release')});return}
+ const s=t.closest('.slot');if(s){reveal(s);return}
+ const row=t.closest('[data-row]');if(row){const j=row.parentElement;j.classList.toggle('open');row.setAttribute('aria-expanded',j.classList.contains('open'));return}
+ if(t.closest('[data-send]')){send();return}
+ if(t.closest('[data-again]')){document.getElementById('card').classList.remove('done');document.getElementById('fa').innerHTML=takeForm;return}
+ if(t.closest('[data-dl]')){document.getElementById('dlnote').textContent='Prototype: the live site downloads resume.pdf here.';return}
+ const c=t.closest('[data-copy]');if(c){copyEmail(c)}
+});
+document.addEventListener('keydown',e=>{
+ if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('slot')){e.preventDefault();reveal(e.target);return}
+ if(e.key==='Enter'&&(e.target.id==='em'||e.target.id==='co')){e.preventDefault();send()}
+});
+document.addEventListener('input',e=>{if(e.target.id==='em'){e.target.classList.remove('bad');const er=document.getElementById('er');if(er)er.textContent=''}});
+
+try{const m=localStorage.getItem('vp-mode');if(m==='phone')setMode('phone')}catch(e){}
+render((location.hash||'').slice(1)||'discography');
+</script>

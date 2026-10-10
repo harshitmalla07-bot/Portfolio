@@ -1,0 +1,62 @@
+---
+// Served by Vercel for any unknown URL (see .vercel/output/config.json → /404.html).
+import Base from '../layouts/Base.astro';
+import Record from '../components/Record.astro';
+---
+
+<Base title="Not found" description="This page doesn't exist.">
+	<section class="wrap lost">
+		<div class="rec">
+			<Record color="var(--ln-2)" ink="var(--mu)" top="ERROR" bottom="404 RPM" spin={9} />
+		</div>
+		<div>
+			<p class="lab">Error 404 · track not found</p>
+			<h1 class="display">
+				This one never <em>got pressed.</em>
+			</h1>
+			<p class="msg">The page you're looking for doesn't exist. It may have moved, or the link has a typo.</p>
+			<p class="actions">
+				<a class="btn pri" href="/">
+					Back to the discography
+				</a>
+				<a class="btn" href="/resume">
+					See the resume
+				</a>
+			</p>
+		</div>
+	</section>
+</Base>
+
+<style>
+	.lost {
+		display: grid;
+		grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+		gap: 48px;
+		align-items: center;
+		padding-block: clamp(56px, 10vw, 120px);
+	}
+
+	.msg {
+		max-width: 46ch;
+		color: var(--mu);
+		margin: 20px 0 24px;
+	}
+
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin: 0;
+	}
+
+	@media (max-width: 760px) {
+		.lost {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 28px;
+		}
+
+		.rec {
+			width: 160px;
+		}
+	}
+</style>

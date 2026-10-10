@@ -1,0 +1,36 @@
+{
+  "name": "portfolio",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "format": "prettier --write .",
+    "astro": "astro",
+    "test": "node tests/site.test.mjs",
+    "test:100": "node tests/site.test.mjs --runs 100 --workers 4"
+  },
+  "dependencies": {
+    "@astrojs/vercel": "^11.0.13",
+    "astro": "^7.3.8",
+    "resend": "^6.32.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^24.19.2",
+    "playwright-core": "^1.64.0",
+    "prettier": "^3.9.9",
+    "prettier-plugin-astro": "^1.1.1",
+    "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "prettier-plugin-astro": {
+      "@astrojs/compiler-rs": "0.5.1"
+    }
+  }
+}

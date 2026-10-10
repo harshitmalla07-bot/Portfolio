@@ -1,0 +1,108 @@
+---
+// A spinning vinyl record. The grooves rotate; the sheen stays still,
+// like light hitting a real record. Size it with its container.
+interface Props {
+	color: string; // label color (hex or a CSS var like var(--ac))
+	ink: string; // text color on the label
+	top?: string; // label text above the spindle, e.g. "CAT. 004"
+	bottom?: string; // label text below the spindle, e.g. "33⅓ RPM"
+	spin?: number; // seconds per rotation
+	class?: string;
+}
+
+const { color, ink, top = '', bottom = '', spin = 5, class: className } = Astro.props;
+const grooves = [95, 91, 87, 83, 77, 73, 69, 61, 57, 53, 49, 45];
+---
+
+<div class:list={['record', className]} style={`--spin:${spin}s`}>
+	<div class="disc">
+		<svg viewBox="0 0 200 200" aria-hidden="true">
+			<circle class="base" cx="100" cy="100" r="100"></circle>
+			<g class="grooves" fill="none" stroke-width="0.6">
+				{grooves.map((r) => (
+					<circle cx="100" cy="100" r={r} />
+				))}
+			</g>
+			<g class="gaps" fill="none" stroke-width="1.1">
+				<circle cx="100" cy="100" r="80"></circle>
+				<circle cx="100" cy="100" r="65"></circle>
+			</g>
+			<circle class="gaps" cx="100" cy="100" r="99.4" fill="none" stroke-width="1.2"></circle>
+			<circle cx="100" cy="100" r="34" style={`fill:${color}`}></circle>
+			<circle
+				cx="100"
+				cy="100"
+				r="29"
+				fill="none"
+				style={`stroke:${ink}`}
+				stroke-opacity="0.3"
+				stroke-width="0.6"
+			></circle>
+			<text x="100" y="84" text-anchor="middle" font-size="6" letter-spacing="1.2" style={`fill:${ink}`}>
+				{top}
+			</text>
+			<text x="100" y="121" text-anchor="middle" font-size="5" letter-spacing="0.6" style={`fill:${ink}`} opacity="0.7">
+				{bottom}
+			</text>
+			<circle class="hole" cx="100" cy="100" r="2.6"></circle>
+		</svg>
+	</div>
+	<div class="sheen"></div>
+</div>
+
+<style>
+	.record {
+		position: relative;
+		width: 100%;
+		aspect-ratio: 1;
+		/* The disc's square box sticks out ~20% at its corners mid-rotation. Clipping to the
+		   circle keeps that out of page layout; without it, phones scroll sideways mid-spin. */
+		overflow: hidden;
+		border-radius: 50%;
+	}
+
+	.disc {
+		width: 100%;
+		height: 100%;
+		animation: spin var(--spin) linear infinite;
+		will-change: transform;
+	}
+
+	.disc svg {
+		width: 100%;
+		height: 100%;
+		font-family: var(--font-mono);
+	}
+
+	/* Colors live here, not in SVG attributes: var() in presentation attributes is not portable. */
+	.base {
+		fill: var(--vinyl);
+	}
+
+	.grooves {
+		stroke: var(--groove);
+	}
+
+	.gaps {
+		stroke: var(--groove-gap);
+	}
+
+	.hole {
+		fill: var(--bg);
+	}
+
+	.sheen {
+		position: absolute;
+		inset: 0;
+		border-radius: 50%;
+		pointer-events: none;
+		background: conic-gradient(
+			from 25deg,
+			transparent 0 5%,
+			rgb(255 255 255 / 0.085) 11%,
+			transparent 18% 50%,
+			rgb(255 255 255 / 0.085) 61%,
+			transparent 68%
+		);
+	}
+</style>

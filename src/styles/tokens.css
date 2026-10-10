@@ -1,0 +1,55 @@
+/*
+  Design tokens. The full spec lives in docs/DESIGN.md.
+  Single dark look by design. Font families (--font-display, --font-sans,
+  --font-mono) are injected by Astro's <Font /> component, see astro.config.mjs.
+*/
+:root {
+	color-scheme: dark;
+
+	/* Surfaces */
+	--bg: #0a0a0b; /* page */
+	--raise: #0f0f11; /* cards, the resume sleeve */
+	--shot: #111113; /* screenshot placeholders */
+	--ln: #1d1d21; /* hairlines, dividers */
+	--ln-2: #2c2c31; /* control borders, pills */
+	--ln-hover: #55555b;
+
+	/* Text */
+	--tx: #ededea; /* primary */
+	--body-2: #c2c2bc; /* long-form copy: liner notes, bullets */
+	--mu: #8d8d87; /* secondary */
+	--dim: #66665f; /* labels, metadata, numbers */
+
+	/* Accent: acid lime, used sparingly (hero emphasis, active nav dot, hover on rows, focus) */
+	--ac: #e8ff59;
+	--err: #f09595;
+
+	/* Vinyl */
+	--vinyl: #0d0d0f;
+	--groove: #19191c;
+	--groove-gap: #2a2a2f;
+
+	/* Layout */
+	--max: 1180px;
+	--gut: 48px; /* side gutter, overridden at breakpoints */
+	--radius-sleeve: 3px;
+	--radius-card: 8px;
+	--radius-pill: 999px;
+
+	/* Motion */
+	--ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	--t-fast: 0.2s;
+	--t-reveal: 0.7s;
+}
+
+@media (max-width: 760px) {
+	:root {
+		--gut: 26px;
+	}
+}
+
+@media (max-width: 480px) {
+	:root {
+		--gut: 20px;
+	}
+}

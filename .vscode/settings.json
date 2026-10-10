@@ -1,0 +1,8 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[astro]": { "editor.defaultFormatter": "astro-build.astro-vscode" },
+  "prettier.documentSelectors": ["**/*.astro"],
+  "files.associations": { "*.css": "css" },
+  "typescript.tsdk": "node_modules/typescript/lib"
+}

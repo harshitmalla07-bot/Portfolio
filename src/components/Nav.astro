@@ -1,0 +1,74 @@
+---
+import { site } from '../data/site';
+
+const path = Astro.url.pathname;
+const items = [
+	{ href: '/', label: 'Discography', active: path === '/' || path.startsWith('/discography') },
+	{ href: '/resume', label: 'Resume', active: path.startsWith('/resume') },
+];
+---
+
+<header class="nav">
+	<a class="brand" href="/">
+		{site.name}
+	</a>
+	<nav aria-label="Main">
+		{items.map((item) => (
+			<a href={item.href} aria-current={item.active ? 'page' : undefined}>
+				{item.label}
+			</a>
+		))}
+	</nav>
+</header>
+
+<style>
+	.nav {
+		position: sticky;
+		top: env(safe-area-inset-top, 0px);
+		z-index: 10;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding-block: 18px;
+		/* Line up with .wrap content on wide screens */
+		padding-inline: max(var(--gut), calc((100% - var(--max)) / 2 + var(--gut)));
+		border-bottom: 1px solid var(--ln);
+		background: color-mix(in srgb, var(--bg) 86%, transparent);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+	}
+
+	.brand {
+		font: 400 25px/1 var(--font-display);
+		letter-spacing: -0.01em;
+		text-decoration: none;
+	}
+
+	nav {
+		display: flex;
+		gap: 24px;
+	}
+
+	nav a {
+		font-size: 13px;
+		color: var(--mu);
+		text-decoration: none;
+		transition: color var(--t-fast);
+	}
+
+	nav a:hover,
+	nav a[aria-current='page'] {
+		color: var(--tx);
+	}
+
+	nav a[aria-current='page']::before {
+		content: '';
+		display: inline-block;
+		width: 5px;
+		height: 5px;
+		border-radius: 50%;
+		background: var(--ac);
+		margin-right: 7px;
+		vertical-align: 2px;
+	}
+</style>

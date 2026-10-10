@@ -1,0 +1,176 @@
+---
+// One release on the discography grid: the record sits on top of its sleeve.
+// It's a plain link, so without JavaScript it opens the release directly.
+// With JS (see the script in pages/index.astro), the first tap lifts the record off
+// to reveal the cover, and the second tap opens the release.
+import CoverArt from './CoverArt.astro';
+import Record from './Record.astro';
+import { catalogLabel, releaseYear, type Release } from '../lib/releases';
+
+interface Props {
+	release: Release;
+}
+
+const { release } = Astro.props;
+const { title, type, catalog, color, ink, rpm, spin } = release.data;
+const cat = catalogLabel(catalog);
+---
+
+<a
+	class="slot"
+	href={`/discography/${release.id}`}
+	data-slot={release.id}
+	data-title={title}
+	data-cat={cat}
+	aria-label={`${title}, ${type} ${releaseYear(release)}`}
+>
+	<div class="sq">
+		<div class="art">
+			<CoverArt release={release} />
+		</div>
+		<div class="rec">
+			<Record color={color} ink={ink} top={cat.toUpperCase()} bottom={`${rpm} RPM`} spin={spin} />
+		</div>
+	</div>
+	<div class="cap">
+		<span class="pre">{cat} · reveal</span>
+		<span class="post">
+			<span class="t">{title}</span>
+			<span class="m">
+				{type} · {releaseYear(release)}
+			</span>
+		</span>
+	</div>
+</a>
+
+<style>
+	.slot {
+		display: block;
+		text-decoration: none;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.slot:focus-visible {
+		outline: none;
+	}
+
+	.slot:focus-visible .sq {
+		outline: 2px solid var(--ac);
+		outline-offset: 5px;
+	}
+
+	.sq {
+		position: relative;
+		aspect-ratio: 1;
+		border-radius: var(--radius-sleeve);
+	}
+
+	.art {
+		position: absolute;
+		inset: 0;
+		overflow: hidden;
+		border-radius: var(--radius-sleeve);
+		transform: scale(0.96);
+		transition: transform var(--t-reveal) var(--ease);
+	}
+
+	.rec {
+		position: absolute;
+		inset: 0;
+		transition:
+			opacity 0.45s ease,
+			transform var(--t-reveal) var(--ease);
+	}
+
+	/* Without JS there's nothing to reveal: show the cover and keep the record off. */
+	:global(html:not(.js)) .slot .rec {
+		display: none;
+	}
+
+	:global(html:not(.js)) .slot .art,
+	.slot.open .art {
+		transform: none;
+	}
+
+	.slot.open .rec {
+		opacity: 0;
+		transform: scale(1.12);
+		pointer-events: none;
+	}
+
+	/* Never scale a spinning layer on hover; it blurs. Lift it instead. */
+	@media (hover: hover) {
+		.slot:not(.open):hover .rec {
+			transform: translateY(-4px);
+		}
+
+		.slot.open:hover .art {
+			transform: translateY(-5px);
+		}
+	}
+
+	.cap {
+		display: grid;
+		margin-top: 14px;
+		font-size: 14px;
+	}
+
+	.cap > * {
+		grid-area: 1 / 1;
+		transition: opacity 0.35s ease;
+	}
+
+	.pre {
+		font: 12px var(--font-mono);
+		color: var(--dim);
+	}
+
+	.post {
+		opacity: 0;
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 8px;
+		min-width: 0;
+	}
+
+	.t {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.m {
+		font: 11px var(--font-mono);
+		color: var(--mu);
+		white-space: nowrap;
+	}
+
+	:global(html:not(.js)) .slot .post,
+	.slot.open .post {
+		opacity: 1;
+	}
+
+	:global(html:not(.js)) .slot .pre,
+	.slot.open .pre {
+		opacity: 0;
+	}
+
+	@media (max-width: 480px) {
+		.cap {
+			font-size: 13px;
+		}
+
+		.post {
+			flex-direction: column;
+			gap: 2px;
+		}
+	}
+
+	/* Applied briefly on load so already-revealed slots don't replay the animation. */
+	:global(.instant) .rec,
+	:global(.instant) .art,
+	:global(.instant) .cap > * {
+		transition: none !important;
+	}
+</style>

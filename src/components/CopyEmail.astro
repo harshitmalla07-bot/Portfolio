@@ -1,0 +1,66 @@
+---
+import { site } from '../data/site';
+---
+
+<span class="copy-email">
+	<a class="addr" href={`mailto:${site.email}`}>
+		{site.email}
+	</a>
+	<button type="button" data-copy-email={site.email}>
+		Copy
+	</button>
+</span>
+
+<script>
+	document.querySelectorAll<HTMLButtonElement>('[data-copy-email]').forEach((btn) => {
+		// Read the label once: reading it per click picks up "Copied" on a quick second click.
+		const label = btn.textContent?.trim() || 'Copy';
+		let timer: number | undefined;
+		btn.addEventListener('click', async () => {
+			try {
+				await navigator.clipboard.writeText(btn.dataset.copyEmail ?? '');
+				btn.textContent = 'Copied';
+			} catch {
+				btn.textContent = 'Select to copy';
+			}
+			clearTimeout(timer);
+			timer = window.setTimeout(() => (btn.textContent = label), 1600);
+		});
+	});
+</script>
+
+<style>
+	.copy-email {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-width: 0;
+	}
+
+	.addr {
+		font: 12px var(--font-mono);
+		color: var(--mu);
+		text-decoration: none;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	button {
+		font: 12px var(--font-mono);
+		color: var(--mu);
+		background: none;
+		border: 1px solid var(--ln-2);
+		border-radius: var(--radius-pill);
+		padding: 3px 10px;
+		cursor: pointer;
+		transition:
+			color var(--t-fast),
+			border-color var(--t-fast);
+	}
+
+	button:hover {
+		color: var(--tx);
+		border-color: var(--ln-hover);
+	}
+</style>

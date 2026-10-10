@@ -1,0 +1,505 @@
+---
+// Resume. Design: docs/prototype.html → Resume view; rules: docs/DESIGN.md.
+import Base from '../layouts/Base.astro';
+import Record from '../components/Record.astro';
+import CopyEmail from '../components/CopyEmail.astro';
+import { resume } from '../data/resume';
+import { site } from '../data/site';
+import { pad2 } from '../lib/releases';
+
+// Track numbers run straight through Side A (experience) into Side B (education).
+const eduStart = resume.experience.length;
+// "October 2026" → "2026" for the record label
+const pressingYear = resume.updated.match(/\d{4}/)?.[0] ?? '';
+---
+
+<Base title="Resume" description={resume.summary}>
+	<section class="hero">
+		<div class="wrap hero-in">
+			<p class="lab">Resume · updated {resume.updated}</p>
+			<h1 class="display">
+				The full <em>credits.</em>
+			</h1>
+			<p class="intro">{resume.summary}</p>
+			<p class="avail">
+				<span class="dot" aria-hidden="true"></span>
+				{site.availability}
+			</p>
+		</div>
+	</section>
+
+	<div class="wrap res">
+		<div class="main">
+			<section class="block" aria-labelledby="side-a">
+				<h2 class="lab" id="side-a">
+					Side A · Experience
+				</h2>
+				{resume.experience.map((job, i) => (
+					<div class="job open" data-job>
+						<button type="button" class="jh" aria-expanded="true" aria-controls={`job-${i}`}>
+							<span class="n">{pad2(i + 1)}</span>
+							<span class="title">
+								{job.role} <span class="org">· {job.org}</span>
+							</span>
+							<span class="d">{job.dates}</span>
+							<span class="pl" aria-hidden="true">
+								+
+							</span>
+						</button>
+						<div class="jb" id={`job-${i}`}>
+							<div>
+								<ul>
+									{job.bullets.map((b) => (
+										<li>{b}</li>
+									))}
+								</ul>
+							</div>
+						</div>
+					</div>
+				))}
+			</section>
+
+			<section class="block" aria-labelledby="side-b">
+				<h2 class="lab" id="side-b">
+					Side B · Education
+				</h2>
+				{resume.education.map((s, i) => (
+					<div class="edu">
+						<span class="n">{pad2(eduStart + i + 1)}</span>
+						<span>
+							{s.degree} <span class="org">· {s.school}</span>
+							<span class="sub">{s.details.join(' · ')}</span>
+						</span>
+						<span class="d">{s.dates}</span>
+					</div>
+				))}
+			</section>
+
+			<section class="block" aria-labelledby="awards">
+				<h2 class="lab" id="awards">
+					Awards
+				</h2>
+				<ul class="awards">
+					{resume.awards.map((a) => (
+						<li>{a}</li>
+					))}
+				</ul>
+			</section>
+
+			<section class="block last" aria-labelledby="instruments">
+				<h2 class="lab" id="instruments">
+					Instruments
+				</h2>
+				<dl class="inst">
+					{Object.entries(resume.skills).map(([group, items]) => (
+						<div>
+							<dt>{group}</dt>
+							<dd>
+								{items.map((x) => (
+									<span class="pill">{x}</span>
+								))}
+							</dd>
+						</div>
+					))}
+				</dl>
+			</section>
+		</div>
+
+		<aside class="take" aria-labelledby="take-title">
+			<div class="card">
+				<div class="stop" aria-hidden="true">
+					<div class="rw">
+						<Record color="var(--ac)" ink="var(--bg)" top="RESUME" bottom={`${pressingYear} PRESSING`} spin={6} />
+					</div>
+				</div>
+				<div class="cb">
+					<h2 id="take-title">Take a copy home</h2>
+					<p class="sub">One page, always the latest version.</p>
+					<a class="btn pri" href={site.resumePdf} download>
+						Download PDF ↓
+					</a>
+					<p class="fine">PDF · 1 page · updated {resume.updated}</p>
+				</div>
+			</div>
+		</aside>
+
+		<section class="credits" aria-labelledby="credits-title">
+			<h2 class="lab" id="credits-title">
+				Credits
+			</h2>
+			{site.links.github && (
+				<a class="row" href={site.links.github} target="_blank" rel="noopener">
+					<span>GitHub</span>
+					<span class="v">{site.links.github.replace('https://', '')} ↗</span>
+				</a>
+			)}
+			<a class="row" href={site.links.linkedin} target="_blank" rel="noopener">
+				<span>LinkedIn</span>
+				<span class="v">LinkedIn profile ↗</span>
+			</a>
+			<div class="row">
+				<span>Email</span>
+				<CopyEmail />
+			</div>
+			<div class="row">
+				<span>Based in</span>
+				<span class="v">{site.location}</span>
+			</div>
+		</section>
+	</div>
+</Base>
+
+<script>
+	// Without JS every row stays open. With JS, all but the first collapse and become toggles.
+	const jobs = [...document.querySelectorAll<HTMLElement>('[data-job]')];
+	jobs.forEach((job, i) => {
+		const btn = job.querySelector('button')!;
+		const body = job.querySelector<HTMLElement>('.jb')!;
+		const set = (open: boolean) => {
+			job.classList.toggle('open', open);
+			btn.setAttribute('aria-expanded', String(open));
+			// Collapsed rows are only visually hidden by the height animation; inert hides them from
+			// keyboard and screen readers too, so they match aria-expanded.
+			body.inert = !open;
+		};
+		set(i === 0);
+		btn.addEventListener('click', () => set(!job.classList.contains('open')));
+	});
+</script>
+
+<style>
+	.hero {
+		border-bottom: 1px solid var(--ln);
+	}
+
+	.hero-in {
+		display: grid;
+		gap: 18px;
+		padding-block: clamp(48px, 8vw, 96px) clamp(34px, 5vw, 56px);
+	}
+
+	.hero-in .lab {
+		margin: 0;
+		color: var(--mu);
+	}
+
+	.intro {
+		max-width: 56ch;
+		margin: 0;
+		color: var(--mu);
+	}
+
+	.avail {
+		display: flex;
+		align-items: baseline;
+		gap: 10px;
+		margin: 0;
+		font: 12px/1.5 var(--font-mono);
+	}
+
+	.dot {
+		flex: none;
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: var(--ac);
+	}
+
+	.res {
+		display: grid;
+		grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+		grid-template-areas:
+			'main take'
+			'main credits';
+		grid-template-rows: auto 1fr;
+		gap: 28px 64px;
+		padding-block: 40px 64px;
+		align-items: start;
+	}
+
+	.main {
+		grid-area: main;
+		min-width: 0;
+	}
+
+	.take {
+		grid-area: take;
+	}
+
+	.credits {
+		grid-area: credits;
+	}
+
+	.block {
+		margin-bottom: 44px;
+	}
+
+	.block.last {
+		margin-bottom: 0;
+	}
+
+	.n {
+		font: 12px var(--font-mono);
+		color: var(--dim);
+	}
+
+	.d {
+		font: 11px var(--font-mono);
+		color: var(--dim);
+		white-space: nowrap;
+	}
+
+	.org {
+		color: var(--mu);
+	}
+
+	/* Experience rows */
+	.job {
+		border-top: 1px solid var(--ln);
+	}
+
+	.job:last-child {
+		border-bottom: 1px solid var(--ln);
+	}
+
+	.jh {
+		width: 100%;
+		display: grid;
+		grid-template-columns: 34px minmax(0, 1fr) auto 20px;
+		gap: 8px;
+		align-items: baseline;
+		padding: 14px 0;
+		background: none;
+		border: 0;
+		text-align: left;
+		font-size: 14px;
+		cursor: pointer;
+		transition: color var(--t-fast);
+	}
+
+	.jh:hover {
+		color: var(--ac);
+	}
+
+	.pl {
+		font: 15px var(--font-mono);
+		color: var(--dim);
+		text-align: right;
+		transition: transform 0.45s var(--ease);
+	}
+
+	.job.open .pl {
+		transform: rotate(45deg);
+	}
+
+	.jb {
+		display: grid;
+		grid-template-rows: 0fr;
+		transition: grid-template-rows 0.5s var(--ease);
+	}
+
+	.job.open .jb {
+		grid-template-rows: 1fr;
+	}
+
+	.jb > div {
+		overflow: hidden;
+	}
+
+	.jb ul {
+		margin: 0 0 16px 42px;
+		padding: 0;
+		font-size: 14px;
+		line-height: 1.65;
+		color: var(--body-2);
+	}
+
+	.jb li {
+		margin-bottom: 6px;
+	}
+
+	/* Education */
+	.edu {
+		display: grid;
+		grid-template-columns: 34px minmax(0, 1fr) auto;
+		gap: 8px;
+		align-items: baseline;
+		padding: 14px 0;
+		border-block: 1px solid var(--ln);
+		font-size: 14px;
+	}
+
+	.sub {
+		display: block;
+		margin-top: 4px;
+		font: 12px var(--font-mono);
+		color: var(--mu);
+	}
+
+	/* Awards */
+	.awards {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.awards li {
+		padding: 11px 0;
+		border-top: 1px solid var(--ln);
+		font-size: 14px;
+	}
+
+	.awards li:last-child {
+		border-bottom: 1px solid var(--ln);
+	}
+
+	/* Instruments */
+	.inst {
+		display: grid;
+		gap: 10px;
+		margin: 0;
+	}
+
+	.inst div {
+		display: grid;
+		grid-template-columns: 150px minmax(0, 1fr);
+		gap: 12px;
+		align-items: baseline;
+	}
+
+	.inst dt {
+		font: 11px var(--font-mono);
+		color: var(--dim);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
+
+	.inst dd {
+		margin: 0;
+	}
+
+	.pill {
+		display: inline-block;
+		font-size: 13px;
+		padding: 4px 11px;
+		margin: 0 5px 7px 0;
+		border: 1px solid var(--ln-2);
+		border-radius: var(--radius-pill);
+		color: var(--body-2);
+	}
+
+	/* Take a copy home */
+	.card {
+		border: 1px solid var(--ln);
+		border-radius: var(--radius-card);
+		background: var(--raise);
+		overflow: hidden;
+	}
+
+	.stop {
+		position: relative;
+		height: 104px;
+		overflow: hidden;
+		border-bottom: 1px solid var(--ln);
+	}
+
+	.rw {
+		position: absolute;
+		left: 50%;
+		top: 18px;
+		width: 176px;
+		margin-left: -88px;
+	}
+
+	.cb {
+		display: grid;
+		padding: 20px;
+	}
+
+	.cb h2 {
+		font: 400 28px/1.1 var(--font-display);
+		margin: 0 0 4px;
+	}
+
+	.cb .sub {
+		font: 13px/1.5 var(--font-sans);
+		margin: 0 0 16px;
+	}
+
+	.fine {
+		margin: 10px 0 0;
+		font: 11px var(--font-mono);
+		color: var(--dim);
+	}
+
+	/* Credits */
+	.credits .lab {
+		margin-bottom: 12px;
+	}
+
+	.row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 12px;
+		padding: 13px 0;
+		border-top: 1px solid var(--ln);
+		font-size: 14px;
+		text-decoration: none;
+		transition: color var(--t-fast);
+	}
+
+	.row:last-child {
+		border-bottom: 1px solid var(--ln);
+	}
+
+	a.row:hover {
+		color: var(--ac);
+	}
+
+	.v {
+		min-width: 0;
+		font: 12px var(--font-mono);
+		color: var(--mu);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	@media (max-width: 760px) {
+		.res {
+			grid-template-columns: minmax(0, 1fr);
+			grid-template-areas: 'take' 'main' 'credits';
+			grid-template-rows: none;
+			gap: 44px;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.jh {
+			grid-template-columns: 28px minmax(0, 1fr) 18px;
+		}
+
+		.jh .d {
+			grid-column: 2;
+			grid-row: 2;
+		}
+
+		.jb ul {
+			margin-left: 36px;
+		}
+
+		.edu {
+			grid-template-columns: 28px minmax(0, 1fr);
+		}
+
+		.edu .d {
+			grid-column: 2;
+		}
+
+		.inst div {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 6px;
+		}
+	}
+</style>

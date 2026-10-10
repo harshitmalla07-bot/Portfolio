@@ -1,0 +1,97 @@
+---
+// Album cover for a release. Uses the release's `cover` image when it has one;
+// otherwise draws simple generated art: flat color, one line motif, title.
+import { Image } from 'astro:assets';
+import type { Release } from '../lib/releases';
+import { catalogLabel } from '../lib/releases';
+
+interface Props {
+	release: Release;
+	class?: string;
+}
+
+const { release, class: className } = Astro.props;
+const { title, color, ink, catalog, motif, cover } = release.data;
+
+// Long titles wrap onto two lines at the space nearest the middle.
+const lines = (() => {
+	if (title.length <= 12 || !title.includes(' ')) return [title];
+	const words = title.split(' ');
+	let best = 1;
+	for (let i = 1; i < words.length; i++) {
+		const diff = Math.abs(words.slice(0, i).join(' ').length - words.slice(i).join(' ').length);
+		const bestDiff = Math.abs(words.slice(0, best).join(' ').length - words.slice(best).join(' ').length);
+		if (diff < bestDiff) best = i;
+	}
+	return [words.slice(0, best).join(' '), words.slice(best).join(' ')];
+})();
+const titleSize = lines.length > 1 ? 12 : title.length > 9 ? 13 : 15;
+
+const dots: { x: number; y: number; on: boolean }[] = [];
+for (let row = 0; row < 4; row++)
+	for (let col = 0; col < 5; col++) dots.push({ x: 18 + col * 16, y: 24 + row * 11, on: (row * 5 + col) % 7 === 2 });
+---
+
+{cover ? (
+	<Image
+		src={cover}
+		alt={`Cover art for ${title}`}
+		class:list={['cover', className]}
+		widths={[400, 800]}
+		sizes="(max-width: 820px) 50vw, 300px"
+	/>
+) : (
+	<svg
+		class:list={['cover', className]}
+		viewBox="0 0 100 100"
+		role="img"
+		aria-label={`Cover art for ${title}`}
+		style="font-family: var(--font-display)"
+	>
+		<rect width="100" height="100" fill={color} />
+		<g fill="none" stroke={ink} stroke-width="0.7" stroke-linejoin="round">
+			{motif === 'pipeline' && (
+				<>
+					<path d="M8 44 H92" stroke-width="0.5" />
+					{[10, 27, 44, 61, 78].map((x, i) => (
+						<rect x={x} y="34" width="12" height="20" fill={i === 2 ? ink : color} />
+					))}
+				</>
+			)}
+			{motif === 'waveform' && (
+				<>
+					<path d="M8 52 H20 V30 H34 V52 H44 V22 H60 V52 H70 V36 H82 V52 H92" />
+					<path d="M8 60 H92" stroke-width="0.4" stroke-dasharray="1.5 2" />
+				</>
+			)}
+			{motif === 'grid' && dots.map((d) => <circle cx={d.x} cy={d.y} r="4" fill={d.on ? ink : 'none'} />)}
+			{motif === 'arcs' && (
+				<>
+					{[18, 29, 40, 51, 62].map((r) => (
+						<circle cx="100" cy="0" r={r} />
+					))}
+					<circle cx="100" cy="0" r="9" fill={ink} />
+				</>
+			)}
+		</g>
+		<text x="9" y="12" font-size="4.5" letter-spacing="0.6" fill={ink} style="font-family: var(--font-mono)">
+			{catalogLabel(catalog).toUpperCase()}
+		</text>
+		{lines.map((line, i) => (
+			<text x="9" y={91 - (lines.length - 1 - i) * 11} font-size={titleSize} font-style="italic" fill={ink}>
+				{line}
+			</text>
+		))}
+	</svg>
+)}
+
+<style>
+	.cover {
+		display: block;
+		width: 100%;
+		height: auto;
+		aspect-ratio: 1;
+		object-fit: cover;
+		border-radius: var(--radius-sleeve);
+	}
+</style>
